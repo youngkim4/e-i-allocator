@@ -1,0 +1,18 @@
+# CS107 .gitignore
+# mchang & jzelenski tweaked Feb 2017, troccoli updated 2023 for starter auto-gen
+
+# these patterns have no anchor so as to match anywhere (only in student repos)
+*.o
+.*.sw?
+*~
+.\#*
+\#*
+
+
+# explicitly name project/solution executables here, anchored to top-level dir
+/test_bump
+/test_implicit
+/test_explicit
+/my_optional_program_bump
+/my_optional_program_implicit
+/my_optional_program_explicit
