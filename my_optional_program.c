@@ -32,7 +32,9 @@ int main(int argc, char *argv[]) {
     }
 
     // optionally write your code here!
-    
+    mymalloc(8);
+    mymalloc(12);
+    mymalloc(20);
     return 0;
 }
 
