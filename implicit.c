@@ -5,7 +5,6 @@
 
 static void *segment_start;
 static size_t segment_size;
-static size_t nused;
 
 typedef struct header {
     size_t data; 
@@ -106,14 +105,15 @@ void *myrealloc(void *old_ptr, size_t new_size) {
 
     if (new_size == 0) {
         myfree(old_ptr);
+        return NULL;
     }
         
-    
-    void *new_ptr = mymalloc(new_size);
-    memcpy(new_ptr, old_ptr, new_size);
-    myfree(old_ptr);
-
-    return new_ptr;
+    else {
+        void *new_ptr = mymalloc(new_size);
+        memcpy(new_ptr, old_ptr, new_size);
+        myfree(old_ptr);
+        return new_ptr;
+    }
 }
 
 bool validate_heap() {
