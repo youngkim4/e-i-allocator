@@ -103,7 +103,10 @@ void myfree(void *ptr) {
 }
 
 /*
-The implicit myrealloc function first 
+The implicit myrealloc function first checks for edge cases, such as 
+the ptr being NULL or the new_size being 0, and then reallocs as normal
+by utilizing new_ptr with memcpy, freeing the old memory using myfree, and then
+returning new_ptr.
  */
 void *myrealloc(void *old_ptr, size_t new_size) {
     if (old_ptr == NULL) {
@@ -124,6 +127,8 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     return new_ptr;
 }
 
+/*
+ */
 bool validate_heap() {
     char* check = segment_start;
     while ((check < (char*)segment_end)) {
@@ -145,6 +150,11 @@ bool validate_heap() {
  * information about each block within it.
  */
 void dump_heap() {
-    // TODO(you!): Write this function to help debug your heap.
-    
+    char *iter_ptr = segment_start;
+    while (iter_ptr < (char*)segment_end) {
+        header *current_header = (header*)iter_ptr;
+        printf("Header at %p: size = %zu, allocated = %s\n",
+               (void*)current_header, getsize(current_header), isfree(current_header) ? "false" : "true");
+        iter_ptr += sizeof(header) + getsize(current_header);
+    }
 }
