@@ -56,27 +56,31 @@ which both indicate of a block is available and if it has enough space for reque
 The function returns a pointer to the allocated data (not the header for it)
  */
 void *mymalloc(size_t requested_size) {
-    // TODO(you!): remove the line below and implement this!
+    // if requested_size is too big or if it's zero, return NULL
     if (requested_size > MAX_REQUEST_SIZE || requested_size == 0) {
         return NULL;
     }
+    
     size_t needed = roundup(requested_size, ALIGNMENT);
 
     header *current_header = segment_start;
-
+    
+    // iterate through all headers
     while (true) {
-        if (isfree(current_header) && getsize(current_header) >= needed) {
-            if (getsize(current_header) - needed >= sizeof(header) + ALIGNMENT) {
+        if (isfree(current_header) && getsize(current_header) >= needed) { // if header indicates free block and there is enough size
+            /*
+            if (getsize(current_header) - needed >= sizeof(header) + ALIGNMENT) { // check if we need to segment 
                 size_t remaining = current_header->data;
                 current_header->data = needed + (current_header->data & 0x1);
                 header *next = (header*)((char*)current_header + sizeof(header) + needed);
                 next->data = remaining - needed - sizeof(header);
             }
-            current_header->data += 1;
+            */
+            current_header->data += 1; // change header from indicating free to allocated
 
-            return (char*)current_header + sizeof(header);
+            return (char*)current_header + sizeof(header); // return pointer
         }
-        current_header = (header*)((char*)current_header + sizeof(header) + getsize(current_header));
+        current_header = (header*)((char*)current_header + sizeof(header) + getsize(current_header)); // next pointer
     }
     
     return NULL;
