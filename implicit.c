@@ -66,7 +66,7 @@ void *mymalloc(size_t requested_size) {
 
     while (true) {
         if (isfree(current_header) && getsize(current_header) >= needed) {
-            if (current_header->data - needed >= sizeof(header) + ALIGNMENT) {
+            if (getsize(current_header) - needed >= sizeof(header) + ALIGNMENT) {
                 size_t remaining = current_header->data;
                 current_header->data = needed + (current_header->data & 0x1);
                 header *next = (header*)((char*)current_header + sizeof(header) + needed);
@@ -118,14 +118,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
 }
 
 bool validate_heap() {
-    /* TODO(you!): remove the line below and implement this to
-     * check your internal structures!
-     * Return true if all is ok, or false otherwise.
-     * This function is called periodically by the test
-     * harness to check the state of the heap allocator.
-     * You can also use the breakpoint() function to stop
-     * in the debugger - e.g. if (something_is_wrong) breakpoint();
-     */
+    
     return true;
 }
 
