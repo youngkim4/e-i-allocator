@@ -125,13 +125,13 @@ void *myrealloc(void *old_ptr, size_t new_size) {
 }
 
 bool validate_heap() {
-    header* check = segment_start;
-    while ((char*)check < (char*)segment_end){
-        size_t payload_size = getsize(check) + ALIGNMENT;
+    char* check = segment_start;
+    while ((check < segment_end)) {
+        size_t payload_size = getsize((header*)check) + ALIGNMENT;
         check += payload_size;
     }
     
-    return (char*)check == (char*)segment_end;
+    return check == (char*)segment_end;
 }
 
 /* Function: dump_heap
