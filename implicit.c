@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 static void *segment_start;
+static void *segment_end;
 static size_t segment_size;
 
 typedef struct header {
@@ -21,13 +22,15 @@ bool myinit(void *heap_start, size_t heap_size) {
     
     header* first_header = heap_start;
     first_header->data = segment_size;
+
+    segment_end = (char*)segment_start + heap_size;
     
     return true;
 }
 
 /*
 The roundup helper function rounds a size sz up to the nearest multiple
-of size mult, which will be ALLOCATION (8)
+of size mult, which wfill be ALLOCATION (8)
  */
 size_t roundup(size_t sz, size_t mult) {
     return (sz + mult - 1) & ~(mult - 1);
@@ -72,15 +75,15 @@ void *mymalloc(size_t requested_size) {
             if (getsize(current_header) - needed >= sizeof(header) + ALIGNMENT) {  // header needs the space for the size of itself and at least 8 bytes
                 size_t remaining = current_header->data;
                 current_header->data = needed;
-                header *next = (header*)((char*)current_header + sizeof(header) + needed);
+                header *next = (header*)((char*)current_header + sizeof(header) + needed); // create new header
                 next->data = remaining - needed - sizeof(header);
             }
             
             current_header->data += 1; // change header from indicating free to allocated
 
-            return (char*)current_header + sizeof(header); // return pointer
+            return (char*)current_header + sizeof(header); // return pointer to allocated memory
         }
-        current_header = (header*)((char*)current_header + sizeof(header) + getsize(current_header)); // next pointer
+        current_header = (header*)((char*)current_header + sizeof(header) + getsize(current_header)); // next header
     }
     
     return NULL;
@@ -94,7 +97,7 @@ void myfree(void *ptr) {
     if (ptr == NULL) {
         return;
     }
-
+    
     header *newheader = (header*)((char*)ptr - sizeof(header));
     newheader->data -= 1;
 }
@@ -122,8 +125,13 @@ void *myrealloc(void *old_ptr, size_t new_size) {
 }
 
 bool validate_heap() {
+    header* check = segment_start;
+    while ((char*)check < (char*)segment_end){
+        size_t payload_size = getsize(check) + ALIGNMENT;
+        check += payload_size;
+    }
     
-    return true;
+    return (char*)check == (char*)segment_end;
 }
 
 /* Function: dump_heap
