@@ -103,6 +103,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         if (new_size != 0) {
             return mymalloc(new_size);
         }
+        return NULL;
     }
 
     if (new_size == 0) {
