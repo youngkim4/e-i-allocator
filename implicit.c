@@ -11,9 +11,6 @@ typedef struct header {
     size_t data; 
 } header;
 
-size_t roundup(size_t sz, size_t mult);
-bool isfree(header *h);
-
 bool myinit(void *heap_start, size_t heap_size) {
     if (heap_size < (2*ALIGNMENT)) {
         return false;
@@ -29,14 +26,26 @@ bool myinit(void *heap_start, size_t heap_size) {
     return true;
 }
 
+/*
+The roundup helper function rounds a size sz up to the nearest multiple
+of size mult, which will be ALLOCATION (8)
+ */
 size_t roundup(size_t sz, size_t mult) {
     return (sz + mult - 1) & ~(mult - 1);
 }
 
+/*
+The isfree helper function checks whether a header indicates whether a block
+of memory is free or not by returning the value of its least significant bit.
+ */
 bool isfree(header *h) {
     return !(h->data & 0x1);
 }
 
+/*
+The getsize function returns the size of the block of memory the header heads
+by returning the value of the header without its 3 least significant bits.
+ */
 size_t getsize(header *h) {
     return h->data & ~(0x7);
 }
@@ -87,12 +96,21 @@ void myfree(void *ptr) {
     newheader->data -= 1;
 }
 
+/*
+The implicit myrealloc function first 
+ */
 void *myrealloc(void *old_ptr, size_t new_size) {
-    // TODO(you!): remove the line below and implement this!
+    if (old_ptr == NULL) {
+        return NULL;
+    }
+
+    if (new_size == 0) {
+        myfree(old_ptr);
+    }
+
     void *new_ptr = mymalloc(new_size);
     memcpy(new_ptr, old_ptr, new_size);
     myfree(old_ptr);
-    return new_ptr;
 }
 
 bool validate_heap() {
