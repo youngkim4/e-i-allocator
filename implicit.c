@@ -103,7 +103,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         return NULL;
     }
 
-    if (new_size == 0) {
+    else if (new_size == 0) {
         myfree(old_ptr);
         return NULL;
     }
