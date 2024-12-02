@@ -38,7 +38,7 @@ bool isfree(header *h) {
 }
 
 size_t getsize(header *h) {
-    return h->data & ~(0x1);
+    return h->data & ~(0x7);
 }
 
 void *mymalloc(size_t requested_size) {
