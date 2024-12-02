@@ -125,10 +125,12 @@ void *myrealloc(void *old_ptr, size_t new_size) {
 }
 
 bool validate_heap() {
-    char* check = (char*)segment_start;
+    char* check = segment_start;
     while ((check < (char*)segment_end)) {
         size_t payload_size = getsize((header*)check) + sizeof(header);
-        if (payload_size > (char*)segment_end - check)
+        if (payload_size > (char*)segment_end - check) {
+            return false;
+        }
         check += payload_size;
     }
     
