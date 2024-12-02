@@ -41,6 +41,12 @@ size_t getsize(header *h) {
     return h->data & ~(0x7);
 }
 
+/* 
+The implicit mymalloc function uses a first-fit approach to identify headers
+which both indicate of a block is available and if it has enough space for requested_size.
+
+The function returns a pointer to the allocated data (not the header for it)
+ */
 void *mymalloc(size_t requested_size) {
     // TODO(you!): remove the line below and implement this!
     if (requested_size > MAX_REQUEST_SIZE || requested_size == 0) {
@@ -68,8 +74,17 @@ void *mymalloc(size_t requested_size) {
     return NULL;
 }
 
+/*
+The implicit myfree function takes in a pointer to an allocated block and adjusts
+its header to indicate that the block is now free.
+ */
 void myfree(void *ptr) {
-    // TODO(you!): implement this!
+    if (ptr == NULL) {
+        return;
+    }
+
+    header *newheader = (header*)((char*)ptr - sizeof(header));
+    newheader->data -= 1;
 }
 
 void *myrealloc(void *old_ptr, size_t new_size) {
