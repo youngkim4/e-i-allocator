@@ -103,17 +103,15 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         return NULL;
     }
 
-    else if (new_size == 0) {
+    if (new_size == 0) {
         myfree(old_ptr);
         return NULL;
     }
         
-    else {
-        void *new_ptr = mymalloc(new_size);
-        memcpy(new_ptr, old_ptr, new_size);
-        myfree(old_ptr);
-        return new_ptr;
-    }
+    void *new_ptr = mymalloc(new_size);
+    memcpy(new_ptr, old_ptr, new_size);
+    myfree(old_ptr);
+    return new_ptr;
 }
 
 bool validate_heap() {
