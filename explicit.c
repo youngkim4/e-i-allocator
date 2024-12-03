@@ -1,20 +1,103 @@
 #include "./allocator.h"
 #include "./debug_break.h"
 
+typedef struct header {
+    size_t data;
+} header;
+
+typedef struct freeblock {
+    header h;
+    struct freeblock *prev;
+    struct freeblock *next;
+} freeblock;
+
+static void *segment_begin;
+static size_t segment_size;
+static void *segment_end;
+freeblock *first_freeblock;
+
+void coalesce(freeblock *nf);
+void add_freeblock_to_list(freeblock *nf);
+void remove_freeblock_from_list(freeblock *nf);
+
+
 bool myinit(void *heap_start, size_t heap_size) {
-    /* TODO(you!): remove the line below and implement this!
-     * This must be called by a client before making any allocation
-     * requests.  The function returns true if initialization was
-     * successful, or false otherwise. The myinit function can be
-     * called to reset the heap to an empty state. When running
-     * against a set of of test scripts, our test harness calls
-     * myinit before starting each new script.
-     */
-    return false;
+    if (heap_size < (ALIGNMENT * 3)) {
+        return false;
+    }
+
+    segment_begin = heap_start;
+    segment_size = heap_size - sizeof(header);
+    segment_end = (char*)heap_start + heap_size;
+
+    first_freeblock = segment_begin;
+    (first_freeblock->h).data = segment_size;
+    first_freeblock->prev = NULL;
+    first_freeblock->next = NULL;
+    
+    return true;
+}
+
+size_t roundup(size_t sz, size_t mult) {
+    return (sz + mult - 1) & ~(mult - 1);
+}
+
+bool isfree(header *h) {
+    return !(h->data & 0x1);
+}
+
+size_t getsize(header *h) {
+    return h->data & ~(0x7);
+}
+
+void coalesce (freeblock *nf) {
+    freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize((&nf->h)));
+
+    remove_freeblock_from_list(nf);
+
+    size_t addedsize = getsize(&nf->h);
+
+    (nf->h).data += sizeof(header) + addedsize;
+}
+
+void add_freeblock_to_list (freeblock *nf) {
+    first_freeblock->prev = nf;
+    nf->next = first_freeblock;
+    nf->prev = NULL;
+    first_freeblock = nf;
+}
+
+void remove_freeblock_from_list (freeblock *nf) {
+    if (nf->prev) {
+        (nf->prev)->next = nf->next;
+    }
+    if (nf->next) {
+        (nf->next)->prev = nf->prev;
+    }
 }
 
 void *mymalloc(size_t requested_size) {
-    // TODO(you!): remove the line below and implement this!
+    if (requested_size > MAX_REQUEST_SIZE || requested_size == 0) {
+        return NULL;
+    }
+
+    size_t needed = requested_size <= 2*ALIGNMENT ? 2*ALIGNMENT : roundup(requested_size, ALIGNMENT);
+
+    freeblock *cur_fb = first_freeblock;
+    while (true) {
+        if (getsize(&cur_fb->h) >= needed) {
+            if (getsize(&cur_fb->h) - needed >= sizeof(header) + 2*ALIGNMENT) {
+                size_t surplus = getsize(&cur_fb->h);
+                (cur_fb->h).data = needed;
+                freeblock *next = (freeblock*)((char*)cur_fb + sizeof(header) + needed);
+                add_freeblock_to_list(next);
+            }
+            (cur_fb->h).data += 1;
+
+            return (char*)(cur_fb) + sizeof(header);
+        }
+        cur_fb = cur_fb->next;  
+    }
     return NULL;
 }
 
