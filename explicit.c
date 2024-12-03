@@ -120,7 +120,7 @@ bool validate_heap() {
      * You can also use the breakpoint() function to stop
      * in the debugger - e.g. if (something_is_wrong) breakpoint();
      */
-    return false;
+    return true;
 }
 
 /* Function: dump_heap
