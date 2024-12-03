@@ -90,6 +90,7 @@ void *mymalloc(size_t requested_size) {
                 size_t surplus = getsize(&cur_fb->h);
                 (cur_fb->h).data = needed;
                 freeblock *next = (freeblock*)((char*)cur_fb + sizeof(header) + needed);
+                (next->h).data = surplus - needed - sizeof(header);
                 add_freeblock_to_list(next);
             }
             (cur_fb->h).data += 1;
