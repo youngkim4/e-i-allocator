@@ -3,13 +3,14 @@
 #include <string.h>
 #include <stdio.h>
 
+typedef struct header {
+    size_t data;
+} header;
+
 static void *segment_start;
 static void *segment_end;
 static size_t segment_size;
-
-typedef struct header {
-    size_t data; 
-} header;
+static header *first_header;
 
 bool myinit(void *heap_start, size_t heap_size) {
     if (heap_size < (2*ALIGNMENT)) {
@@ -20,7 +21,7 @@ bool myinit(void *heap_start, size_t heap_size) {
     segment_start = heap_start;
     segment_size = heap_size - sizeof(header);
     
-    header* first_header = heap_start;
+    first_header = heap_start;
     first_header->data = segment_size;
 
     segment_end = (char*)segment_start + heap_size;
@@ -66,7 +67,7 @@ void *mymalloc(size_t requested_size) {
     
     size_t needed = roundup(requested_size, ALIGNMENT);
 
-    header *current_header = segment_start;
+    header *current_header = first_header;
     
     // iterate through all headers
     while (true) {
@@ -125,9 +126,9 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     }
 
     // otherwise, actually realloc
+    myfree(old_ptr);
     void *new_ptr = mymalloc(new_size);
     memcpy(new_ptr, old_ptr, new_size);
-    myfree(old_ptr);
     return new_ptr;
 }
 
