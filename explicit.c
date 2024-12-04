@@ -18,7 +18,7 @@ static size_t segment_size;
 static void *segment_end;
 freeblock *first_freeblock;
 
-void coalesce(freeblock *nf, freeblock *right);
+void coalesce(freeblock *nf);
 void add_freeblock_to_list(freeblock *nf);
 void remove_freeblock_from_list(freeblock *nf);
 
@@ -52,7 +52,8 @@ size_t getsize(header *h) {
     return h->data & ~(0x7);
 }
 
-void coalesce(freeblock *nf, freeblock *right) {
+void coalesce(freeblock *nf) {
+    freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
     remove_freeblock_from_list(right);
     size_t addedsize = getsize(&right->h);
     (nf->h).data += sizeof(header) + addedsize;
@@ -126,8 +127,8 @@ void myfree(void *ptr) {
 
     freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
     while ((void*)right != segment_end && isfree(&right->h)) {
-        coalesce(nf, right);
-        right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
+        coalesce(nf);
+        right = (freeblock*)((char*)(nf) + sizeof(header) + getsize(&nf->h));
     }
 }
 
@@ -161,7 +162,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     else {
         freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
         (nf->h).data -= 1;
-        coalesce(nf, right);
+        coalesce(nf);
         if (getsize(&nf->h) >= new_size) {
             split(nf, new_size);
             (nf->h).data += 1;
