@@ -1,6 +1,7 @@
 #include "./allocator.h"
 #include "./debug_break.h"
 #include <string.h>
+#include <stdio.h>
 
 typedef struct header {
     size_t data;
@@ -191,5 +192,11 @@ bool validate_heap() {
  * information about each block within it.
  */
 void dump_heap() {
-    // TODO(you!): Write this function to help debug your heap.
+    char *iter_ptr = segment_begin;
+    while (iter_ptr < (char*)segment_end) {
+        header *cur = (header*)iter_ptr;
+        printf("Header at %p: size = %zu, allocated = %s\n",
+               (void*)cur, getsize(cur), isfree(cur) ? "false" : "true");
+        iter_ptr += sizeof(header) + getsize(cur);
+    }
 }
