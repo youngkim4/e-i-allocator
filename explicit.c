@@ -103,9 +103,10 @@ void *mymalloc(size_t requested_size) {
     size_t needed = requested_size <= 2*ALIGNMENT ? 2*ALIGNMENT : roundup(requested_size, ALIGNMENT);
 
     freeblock *cur_fb = first_freeblock;
-    while (true) {
+    while (cur_fb != NULL) {
         if (getsize(&cur_fb->h) >= needed) {
             split(cur_fb, needed);
+            remove_freeblock_from_list(cur_fb);
             (cur_fb->h).data += 1;
 
             return (char*)(cur_fb) + sizeof(header);
