@@ -159,7 +159,7 @@ void dump_heap() {
     while (iter_ptr < (char*)segment_end) {
         header *current_header = (header*)iter_ptr;
         printf("Header at %p: size = %zu, allocated = %s\n",
-               (void*)current_header, getsize(current_header), isfree(current_header) ? "false" : "true");
+               (void*)current_header, getsize(current_header), isfree(current_header) ? "true" : "false");
         iter_ptr += sizeof(header) + getsize(current_header);
     }
 }
