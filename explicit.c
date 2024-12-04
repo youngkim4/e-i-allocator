@@ -57,7 +57,7 @@ void coalesce (freeblock *nf, freeblock *right) {
         remove_freeblock_from_list(right);
         size_t addedsize = getsize(&right->h);
         (nf->h).data += sizeof(header) + addedsize;
-        right = (freeblock*)((char*)right + sizeof(header) + getsize(&right->h));
+        right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
     }
 }
 
