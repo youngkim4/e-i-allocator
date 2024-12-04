@@ -81,6 +81,16 @@ void remove_freeblock_from_list (freeblock *nf) {
     }
 }
 
+void split(freeblock *nf, size_t needed) {
+    if (getsize(&nf->h) - needed >= sizeof(header) + 2*ALIGNMENT) {
+        size_t surplus = getsize(&nf->h);
+        (nf->h).data = needed;
+        freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
+        (next->h).data = surplus - needed - sizeof(header);
+        add_freeblock_to_list(next);
+    }
+}
+
 void *mymalloc(size_t requested_size) {
     if (requested_size > MAX_REQUEST_SIZE || requested_size == 0) {
         return NULL;
@@ -91,13 +101,7 @@ void *mymalloc(size_t requested_size) {
     freeblock *cur_fb = first_freeblock;
     while (true) {
         if (getsize(&cur_fb->h) >= needed) {
-            if (getsize(&cur_fb->h) - needed >= sizeof(header) + 2*ALIGNMENT) {
-                size_t surplus = getsize(&cur_fb->h);
-                (cur_fb->h).data = needed;
-                freeblock *next = (freeblock*)((char*)cur_fb + sizeof(header) + needed);
-                (next->h).data = surplus - needed - sizeof(header);
-                add_freeblock_to_list(next);
-            }
+            split(cur_fb, needed);
             (cur_fb->h).data += 1;
 
             return (char*)(cur_fb) + sizeof(header);
@@ -156,13 +160,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
         coalesce(nf, right);
         if (getsize(&nf->h) >= new_size) {
-            if (getsize(&nf->h) - new_size >= sizeof(header) + 2*ALIGNMENT) {
-                size_t surplus = getsize(&nf->h);
-                (nf->h).data = new_size;
-                freeblock *next = (freeblock*)((char*)nf + sizeof(header) + new_size);
-                (next->h).data = surplus - new_size - sizeof(header);
-                add_freeblock_to_list(next);
-            }
+            split(nf, new_size);
             (nf->h).data += 1;
             
             return old_ptr;
