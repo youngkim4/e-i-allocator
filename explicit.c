@@ -62,10 +62,16 @@ void coalesce (freeblock *nf, freeblock *right) {
 }
 
 void add_freeblock_to_list (freeblock *nf) {
-    first_freeblock->prev = nf;
-    nf->next = first_freeblock;
-    nf->prev = NULL;
-    first_freeblock = nf;
+    if (first_freeblock) {
+        first_freeblock->prev = nf;
+        nf->next = first_freeblock;
+        nf->prev = NULL;
+        first_freeblock = nf;
+    }
+    else {
+        first_freeblock = nf;
+    }
+    
 }
 
 void remove_freeblock_from_list (freeblock *nf) {
