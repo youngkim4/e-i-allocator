@@ -147,17 +147,14 @@ void *myrealloc(void *old_ptr, size_t new_size) {
 
     if (cur_size >= new_size) {
         if(getsize(&nf->h) - new_size >= sizeof(header) + 2*ALIGNMENT) {
-            size_t surplus = getsize(&nf->h);
-            (nf->h).data = new_size;
-            freeblock *next = (freeblock*)((char*)nf + sizeof(header) + new_size);
-            (next->h).data = surplus - new_size - sizeof(header);
-            add_freeblock_to_list(next);
+            split(nf, new_size);
         }
         
         return old_ptr;
     }
     else {
         freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
+        (nf->h).data -= 1;
         coalesce(nf, right);
         if (getsize(&nf->h) >= new_size) {
             split(nf, new_size);
