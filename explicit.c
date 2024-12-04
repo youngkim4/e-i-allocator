@@ -135,11 +135,11 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         return NULL;
     }
 
-    // actually realloc
+    // actually realloc 
     new_size = new_size <= 2*ALIGNMENT ? 2*ALIGNMENT : roundup(new_size, 2*ALIGNMENT);
     
-    freeblock *nf = (freeblock*)((char*)old_ptr - sizeof(header));
-    size_t cur_size = getsize(&nf->h);
+    freeblock *nf = (freeblock*)((char*)old_ptr - sizeof(header)); 
+    size_t cur_size = getsize(&nf->h); 
 
     if (cur_size >= new_size) {
         if(getsize(&nf->h) - new_size >= sizeof(header) + 2*ALIGNMENT) {
