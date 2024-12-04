@@ -122,6 +122,7 @@ void myfree(void *ptr) {
 }
 
 void *myrealloc(void *old_ptr, size_t new_size) {
+    breakpoint();
     if (old_ptr == NULL) {
         if (new_size != 0) {
             return mymalloc(new_size);
