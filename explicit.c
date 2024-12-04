@@ -1,5 +1,6 @@
 #include "./allocator.h"
 #include "./debug_break.h"
+#include <string.h>
 
 typedef struct header {
     size_t data;
@@ -16,7 +17,7 @@ static size_t segment_size;
 static void *segment_end;
 freeblock *first_freeblock;
 
-void coalesce(freeblock *nf);
+void coalesce(freeblock *nf, freeblock *right);
 void add_freeblock_to_list(freeblock *nf);
 void remove_freeblock_from_list(freeblock *nf);
 
@@ -50,14 +51,13 @@ size_t getsize(header *h) {
     return h->data & ~(0x7);
 }
 
-void coalesce (freeblock *nf) {
-    freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize((&nf->h)));
-
-    remove_freeblock_from_list(nf);
-
-    size_t addedsize = getsize(&nf->h);
-
-    (nf->h).data += sizeof(header) + addedsize;
+void coalesce (freeblock *nf, freeblock *right) {
+    while((void*)right != segment_end && isfree(&right->h)) {
+        remove_freeblock_from_list(right);
+        size_t addedsize = getsize(&right->h);
+        (nf->h).data += sizeof(header) + addedsize;
+        right = (freeblock*)((char*)right + sizeof(header) + getsize(&right->h));
+    }
 }
 
 void add_freeblock_to_list (freeblock *nf) {
@@ -73,6 +73,10 @@ void remove_freeblock_from_list (freeblock *nf) {
     }
     if (nf->next) {
         (nf->next)->prev = nf->prev;
+    }
+
+    if (nf == first_freeblock) {
+        first_freeblock = nf->next;
     }
 }
 
@@ -103,13 +107,65 @@ void *mymalloc(size_t requested_size) {
 }
 
 void myfree(void *ptr) {
-    // TODO(you!): implement this!
+    if (ptr == NULL) {
+        return;
+    }
+
+    freeblock *nf = (freeblock*)((char*)ptr - sizeof(header));
+    (nf->h).data -= 1;
+
+    add_freeblock_to_list(nf);
+
+    freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
+    coalesce(nf, right);
 }
 
 void *myrealloc(void *old_ptr, size_t new_size) {
-    // TODO(you!): remove the line below and implement this!
-    return NULL;
+    if (old_ptr == NULL) {
+        if (new_size != 0) {
+            return mymalloc(new_size);
+        }
+        return NULL;
+    }
+
+    if (new_size == 0) {
+        myfree(old_ptr);
+        return NULL;
+    }
+
+    // actually realloc
+    new_size = new_size <= 2*ALIGNMENT ? 2*ALIGNMENT : roundup(new_size, 2*ALIGNMENT);
     
+    freeblock *nf = (freeblock*)((char*)old_ptr - sizeof(header));
+    size_t cur_size = getsize(&nf->h);
+
+    if (cur_size >= new_size) {
+        if(getsize(&nf->h) - new_size >= sizeof(header) + 2*ALIGNMENT) {
+            size_t surplus = getsize(&nf->h);
+            (nf->h).data = new_size;
+            freeblock *next = (freeblock*)((char*)nf + sizeof(header) + new_size);
+            (next->h).data = surplus - new_size - sizeof(header);
+            add_freeblock_to_list(next);
+        }
+        return old_ptr;
+    }
+    else {
+        freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
+        coalesce(nf, right);
+        if (getsize(&nf->h) - new_size >= sizeof(header) + 2*ALIGNMENT) {
+            size_t surplus = getsize(&nf->h);
+            (nf->h).data = new_size;
+            freeblock *next = (freeblock*)((char*)nf + sizeof(header) + new_size);
+            (next->h).data = surplus - new_size - sizeof(header);
+            add_freeblock_to_list(next);
+            return old_ptr;
+        }
+    }
+
+    myfree(old_ptr);
+    void *new_ptr = mymalloc(new_size);
+    memcpy(new_ptr, old_ptr, new_size);
+    return new_ptr;
 }
 
 bool validate_heap() {
