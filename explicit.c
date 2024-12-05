@@ -166,13 +166,13 @@ void *myrealloc(void *old_ptr, size_t new_size) {
             return old_ptr;
         }
     }
+    myfree(old_ptr);
     // in-place does not work
     void* new_ptr = mymalloc(new_size);
     if (new_ptr == NULL) {
         return NULL;
     }
     memcpy(new_ptr, old_ptr, cur_size);
-    myfree(old_ptr);
     return new_ptr;
 
 }
