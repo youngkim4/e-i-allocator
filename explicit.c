@@ -112,7 +112,6 @@ void *mymalloc(size_t requested_size) {
             split(cur_fb, needed);
             remove_freeblock_from_list(cur_fb);
             (cur_fb->h).data += 1;
-            dump_heap();
             return (char*)(cur_fb) + sizeof(header);
         }
         cur_fb = cur_fb->next;  
@@ -132,16 +131,12 @@ void myfree(void *ptr) {
 
     freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
     coalesce(nf, right);
-    dump_heap();
 }
 
 void *myrealloc(void *old_ptr, size_t new_size) {
     breakpoint();
     if (old_ptr == NULL) {
-        if (new_size != 0) {
-            return mymalloc(new_size);
-        }
-        return NULL;
+        return mymalloc(new_size);
     }
 
     if (new_size == 0) {
@@ -156,14 +151,8 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     size_t cur_size = getsize(&nf->h); 
 
     if (cur_size >= new_size) {
-        if(cur_size - new_size >= sizeof(header) + 2*ALIGNMENT) {
-            split(nf, new_size);
-            (nf->h).data += 1;
-        }
-        else {
-            (nf->h).data = new_size + 1;
-        }
-        dump_heap();
+        split(nf, new_size);
+        (nf->h).data += 1;
         return old_ptr;
     }
     else {
