@@ -148,7 +148,6 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     }
 
     // actually realloc
-    size_t needed = new_size;
     new_size = new_size < 2*ALIGNMENT ? 2*ALIGNMENT : roundup(new_size, ALIGNMENT);
     
     freeblock *nf = (freeblock*)((char*)old_ptr - sizeof(header)); 
@@ -175,9 +174,8 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         }
     }
     // in-place does not work
-    void *new_ptr = NULL;
-    new_ptr = mymalloc(needed);
-    memcpy(new_ptr, old_ptr, needed);
+    void *new_ptr = mymalloc(new_size);
+    memcpy(new_ptr, old_ptr, new_size);
     myfree(old_ptr);
     return new_ptr;
 }
