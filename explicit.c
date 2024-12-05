@@ -109,6 +109,7 @@ void *mymalloc(size_t requested_size) {
         if (getsize(&cur_fb->h) >= needed) {
             split(cur_fb, needed);
             remove_freeblock_from_list(cur_fb);
+            (cur_fb->h).data += 1;
             return (char*)(cur_fb) + sizeof(header);
         }
         cur_fb = cur_fb->next;  
