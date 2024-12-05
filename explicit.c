@@ -153,10 +153,12 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     size_t cur_size = getsize(&nf->h); 
 
     if (cur_size >= new_size) {
-        if(getsize(&nf->h) - new_size >= sizeof(header) + 2*ALIGNMENT) {
+        if(cur_size - new_size >= sizeof(header) + 2*ALIGNMENT) {
             split(nf, new_size);
             return old_ptr;
-        }       
+        } else {
+            return old_ptr;
+        }
     }
     else {
         freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
@@ -167,7 +169,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
             return old_ptr;
         }
     }
-    
+    // in-place does not work
     myfree(old_ptr);
     void *new_ptr = mymalloc(new_size);
     memcpy(new_ptr, old_ptr, new_size);
