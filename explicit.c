@@ -21,6 +21,7 @@ freeblock *first_freeblock;
 void coalesce(freeblock *nf, freeblock *right);
 void add_freeblock_to_list(freeblock *nf);
 void remove_freeblock_from_list(freeblock *nf);
+void dump_heap();
 
 
 bool myinit(void *heap_start, size_t heap_size) {
