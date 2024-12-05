@@ -163,7 +163,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         coalesce(nf, right);
         if (getsize(&nf->h) >= new_size) {
             split(nf, new_size);
-            
+            (nf->h).data += 1;
             return old_ptr;
         }
     }
