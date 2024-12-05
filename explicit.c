@@ -162,6 +162,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
                 split(nf, new_size);
                 return old_ptr;
             }
+            right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
         }
     }
     // in-place does not work
