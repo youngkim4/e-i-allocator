@@ -148,7 +148,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     }
 
     // actually realloc
-    new_size = new_size < 2*ALIGNMENT ? 2*ALIGNMENT : roundup(new_size, ALIGNMENT);
+    new_size = new_size <= 2*ALIGNMENT ? 2*ALIGNMENT : roundup(new_size, ALIGNMENT);
     
     freeblock *nf = (freeblock*)((char*)old_ptr - sizeof(header)); 
     size_t cur_size = getsize(&nf->h); 
