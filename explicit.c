@@ -156,6 +156,10 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     if (cur_size >= new_size) {
         if(cur_size - new_size >= sizeof(header) + 2*ALIGNMENT) {
             split(nf, new_size);
+            (nf->h).data += 1;
+        }
+        else {
+            (nf->h).data = new_size + 1;
         }
         
         return old_ptr;
