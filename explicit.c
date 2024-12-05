@@ -99,6 +99,7 @@ void split(freeblock *nf, size_t needed) {
 }
 
 void *mymalloc(size_t requested_size) {
+    breakpoint();
     if (requested_size > MAX_REQUEST_SIZE || requested_size == 0) {
         return NULL;
     }
@@ -120,6 +121,7 @@ void *mymalloc(size_t requested_size) {
 }
 
 void myfree(void *ptr) {
+    breakpoint();
     if (ptr == NULL) {
         return;
     }
