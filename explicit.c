@@ -18,7 +18,7 @@ static size_t segment_size;
 static void *segment_end;
 freeblock *first_freeblock;
 
-void coalesce(freeblock *nf, freeblock *right);
+void coalesce(freeblock *nf);
 void add_freeblock_to_list(freeblock *nf);
 void remove_freeblock_from_list(freeblock *nf);
 void dump_heap();
@@ -33,7 +33,7 @@ bool myinit(void *heap_start, size_t heap_size) {
     segment_size = heap_size - sizeof(header);
     segment_end = (char*)heap_start + heap_size;
 
-    first_freeblock = segment_begin;
+    first_freeblock = heap_start;
     (first_freeblock->h).data = segment_size;
     first_freeblock->prev = NULL;
     first_freeblock->next = NULL;
@@ -53,9 +53,10 @@ size_t getsize(header *h) {
     return h->data & ~(0x7);
 }
 
-void coalesce(freeblock *nf, freeblock *right) {
-    size_t addedsize = getsize(&right->h);
+void coalesce(freeblock *nf) {
+    freeblock *right = ((freeblock*)nf + sizeof(header) + getsize(&nf->h));
     remove_freeblock_from_list(right);
+    size_t addedsize = getsize(&right->h);
     (nf->h).data += sizeof(header) + addedsize;
 }
 
@@ -88,7 +89,7 @@ void remove_freeblock_from_list (freeblock *nf) {
 void split(freeblock *nf, size_t needed) {
     if (getsize(&nf->h) - needed >= sizeof(header) + 2*ALIGNMENT) {
         size_t surplus = getsize(&nf->h);
-        (nf->h).data = needed;
+        (nf->h).data = needed + (((nf->h).data) & 0x1);
         freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
         (next->h).data = surplus - needed - sizeof(header);
         add_freeblock_to_list(next);
@@ -128,7 +129,7 @@ void myfree(void *ptr) {
 
     freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
     while ((void*)right != segment_end && isfree(&right->h)) {
-        coalesce(nf, right);
+        coalesce(nf);
         right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
     }
 }
@@ -157,7 +158,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     else {
         freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
         while((void*)right != segment_end && isfree(&right->h)) {
-            coalesce(nf, right);
+            coalesce(nf);
             if (getsize(&nf->h) >= new_size) {
                 split(nf, new_size);
                 return old_ptr;
