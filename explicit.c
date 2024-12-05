@@ -54,12 +54,9 @@ size_t getsize(header *h) {
 }
 
 void coalesce(freeblock *nf, freeblock *right) {
-    while ((void*)right != segment_end && isfree(&right->h)) {
-        size_t addedsize = getsize(&right->h);
-        remove_freeblock_from_list(right);
-        (nf->h).data += sizeof(header) + addedsize;
-        right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
-    }
+    size_t addedsize = getsize(&right->h);
+    remove_freeblock_from_list(right);
+    (nf->h).data += sizeof(header) + addedsize;
 }
 
 void add_freeblock_to_list (freeblock *nf) {
@@ -130,7 +127,10 @@ void myfree(void *ptr) {
     add_freeblock_to_list(nf);
 
     freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
-    coalesce(nf, right);
+    while ((void*)right != segment_end && isfree(&right->h)) {
+        coalesce(nf, right);
+        right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
+    }
 }
 
 void *myrealloc(void *old_ptr, size_t new_size) {
@@ -156,10 +156,12 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     }
     else {
         freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
-        coalesce(nf, right);
-        if (getsize(&nf->h) >= new_size) {
-            split(nf, new_size);
-            return old_ptr;
+        while((void*)right != segment_end && isfree(&right->h)) {
+            coalesce(nf, right);
+            if (getsize(&nf->h) >= new_size) {
+                split(nf, new_size);
+                return old_ptr;
+            }
         }
     }
     // in-place does not work
