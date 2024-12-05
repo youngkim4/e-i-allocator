@@ -87,9 +87,9 @@ void remove_freeblock_from_list (freeblock *nf) {
 }
 
 void split(freeblock *nf, size_t needed) {
-    if (getsize(&nf->h) - needed >= sizeof(header) + 2*ALIGNMENT) {
+    if (getsize(&nf->h) - needed >= sizeof(header) + (2*ALIGNMENT)) {
         size_t surplus = getsize(&nf->h);
-        (nf->h).data = needed + (((nf->h).data) & 0x1);
+        (nf->h).data = needed;
         freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
         (next->h).data = surplus - needed - sizeof(header);
         add_freeblock_to_list(next);
