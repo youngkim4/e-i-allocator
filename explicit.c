@@ -172,7 +172,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         
         return NULL;
     }
-    memcpy(new_ptr, old_ptr, cur_size < new_size ? cur_size : new_size);
+    memcpy(new_ptr, old_ptr, new_size);
     myfree(old_ptr);
     return new_ptr;
 
