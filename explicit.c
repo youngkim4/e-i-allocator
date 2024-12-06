@@ -182,7 +182,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
 }
 
 bool validate_heap() {
-    /*
+    
     char *iter_ptr = segment_begin;
     while (iter_ptr < (char*)segment_end) {
         size_t payload_size = getsize((header*)iter_ptr) + sizeof(header);
@@ -198,7 +198,7 @@ bool validate_heap() {
         breakpoint();
         return false;
     }
-    */
+    
     size_t nused = 0;
     size_t free_seq = 0;
 
