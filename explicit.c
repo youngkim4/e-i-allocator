@@ -93,9 +93,10 @@ void *mymalloc(size_t requested_size) {
 
     size_t needed = requested_size <= 2*ALIGNMENT ? 2*ALIGNMENT : roundup(requested_size, ALIGNMENT);   // Only round up to the nearest multiple of 8 if requested_size > 16
     freeblock *cur_fb = first_freeblock;
-    
-    while (cur_fb != NULL) {
-        if (getsize(&cur_fb->h) >= needed) {
+
+    // iterate through list of freeblocks
+    while (cur_fb != NULL) {    
+        if (getsize(&cur_fb->h) >= needed) {    // if a freeblock with a large enough size is found
             if (getsize(&cur_fb->h) - needed >= sizeof(header) + (2*ALIGNMENT)) {    // If there is enough space for another freeblock, split
                 split(cur_fb, needed);
             }
@@ -158,14 +159,13 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     size_t cur_size = getsize(&nf->h);   
     
     if (cur_size >= new_size) {    // if the cur_size of the block is now large enough for new_size, we do in-place realloc
-        if (cur_size - new_size >= sizeof(header) + (2*ALIGNMENT)) {
+        if (cur_size - new_size >= sizeof(header) + (2*ALIGNMENT)) {    // split if possible
             split(nf, new_size);
             nf->h += 1;
         }
         return old_ptr;
     }
   
-    
     // if in-place does not work, regular realloc
     void* new_ptr = mymalloc(new_size);
     if (new_ptr == NULL) {
@@ -222,7 +222,7 @@ bool validate_heap() {
         if (!isfree(&cur_fb->h)) {
             return false;
         }
-        cur_fb= cur_fb->next; 
+        cur_fb= cur_fb->next;    // iterate
     }
 
     // check if we correctly counted all freeblocks
