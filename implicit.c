@@ -26,29 +26,30 @@ bool isfree(header *h);
 size_t getsize(header *h);
 
 bool myinit(void *heap_start, size_t heap_size) {
-    if (heap_size < (2*ALIGNMENT)) {
+    // heap must at least support one header and 8 bytes of data
+    if (heap_size < sizeof(header) + ALIGNMENT) {
         return false;
     }
 
-    
+    // initialize segment/heap variables
     segment_start = heap_start;
     segment_size = heap_size - sizeof(header);
-    
+    segment_end = (char*)segment_start + heap_size;
+
+    // initialize first header
     first_header = heap_start;
     *first_header = segment_size;
-
-    segment_end = (char*)segment_start + heap_size;
     
     return true;
 }
 
-
-
-/* 
-The implicit mymalloc function uses a first-fit approach to identify headers
-which both indicate of a block is available and if it has enough space for requested_size.
-
-The function returns a pointer to the allocated data (not the header for it)
+/* Function: mymalloc
+ * --------------------
+ * This function allocates a size_t requested_size to the heap. 
+ * This is done through iterating through the heap header by header
+ * (first-fit approach) to identify and choose a header that is both
+ * free and has adequate space. The function then returns a pointer to 
+ * the new allocated data on the heap, or returns NULL if no such header was found.
  */
 void *mymalloc(size_t requested_size) {
     // if requested_size is too big or if it's zero, return NULL
@@ -81,9 +82,10 @@ void *mymalloc(size_t requested_size) {
     return NULL;
 }
 
-/*
-The implicit myfree function takes in a pointer to an allocated block and adjusts
-its header to indicate that the block is now free.
+/* Function: myfree
+ * ------------------
+ * This function frees a block for the specified point in memory void *ptr,
+ * adjusting the memory header to indicate that the block is now free.
  */
 void myfree(void *ptr) {
     if (ptr == NULL) {
@@ -94,11 +96,13 @@ void myfree(void *ptr) {
     *newheader -= 1;
 }
 
-/*
-The implicit myrealloc function first checks for edge cases, such as 
-the ptr being NULL or the new_size being 0, and then reallocs as normal
-by utilizing new_ptr with memcpy, freeing the old memory using myfree, and then
-returning new_ptr.
+/* Function: myrealloc
+ * ---------------------
+ * This function reallocates a size_t new_size amount of memory from the 
+ * location on the heap void *old_ptr. It first checks for edge cases in
+ * which realloc turns into malloc or free, and then reallocs as normal
+ * by utilizing memcpy with a malloc call using new_size. The function returns 
+ * new_ptr, the new location in memory after the reallocation.
  */
 void *myrealloc(void *old_ptr, size_t new_size) {
     if (old_ptr == NULL) {
@@ -123,7 +127,11 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     return new_ptr;
 }
 
-/*
+/* Function: validate_heap
+ * -------------------------
+ * This function iterates through the heap to check for errors,
+ * making sure the heap is 'valid' throughout. It primarily
+ * serves to debug any errors.
  */
 bool validate_heap() {
     char* check = segment_start;
@@ -155,25 +163,26 @@ void dump_heap() {
     }
 }
 
-/*
-The roundup helper function rounds a size sz up to the nearest multiple
-of size mult, which wfill be ALLOCATION (8)
+/* Function: roundup 
+ * ------------------
+ * Helper function to round up size_t sz to 
+ * the nearest multiple of size_t mult.
  */
 size_t roundup(size_t sz, size_t mult) {
     return (sz + mult - 1) & ~(mult - 1);
 }
 
-/*
-The isfree helper function checks whether a header indicates whether a block
-of memory is free or not by returning the value of its least significant bit.
+/* Function: isfree
+ * -----------------
+ * Helper function to check whether a given header is free.
  */
 bool isfree(header *h) {
     return !(*h & 0x1);
 }
 
-/*
-The getsize function returns the size of the block of memory the header heads
-by returning the value of the header without its 3 least significant bits.
+/* Function: getsize
+ * -------------------
+ * Helper function to get the size that a given header represents.
  */
 size_t getsize(header *h) {
     return *h & ~(0x7);
