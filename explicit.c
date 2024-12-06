@@ -131,8 +131,8 @@ void myfree(void *ptr) {
  * This function reallocates a size_t new_size amount of memory from the
  * location on the heap void *old_ptr. It first checks for edge cases in which
  * realloc turns into malloc or free, then tries to perform an in-place realloc
- * by checking whether or not the current location is suitable for new_size or
- * by checking if there are adjacent freeblocks to coalesce to make space for new_size.
+ * by first coalescing any available adjacent right free blocks, then checking if 
+ * there is now enough space for an in-place realloc.
  * If in-place realloc is not possible, then a regular realloc using memcpy takes place.
  * The function returns the location of the realloced memory.
  */
@@ -152,40 +152,20 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     new_size = new_size <= 2*ALIGNMENT ? 2*ALIGNMENT : roundup(new_size, ALIGNMENT);
     freeblock *nf = (freeblock*)((char*)old_ptr - sizeof(header));    // block managed by old_ptr
 
+    // check if in-place realloc works
     freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
-    coalesce(nf, right);
-    size_t cur_size = getsize(&nf->h);
+    coalesce(nf, right);    // coalesce all free blocks if possible to set up in-place realloc
+    size_t cur_size = getsize(&nf->h);   
     
-    if (cur_size >= new_size) {
+    if (cur_size >= new_size) {    // if the cur_size of the block is now large enough for new_size, we do in-place realloc
         if (cur_size - new_size >= sizeof(header) + (2*ALIGNMENT)) {
             split(nf, new_size);
             nf->h += 1;
         }
         return old_ptr;
     }
+  
     
-    /*
-    // first, check if in-place realloc works:
-    if (cur_size >= new_size) {    // if new_size is less than cur_size, we can use the existing location to realloc
-        if (getsize(&nf->h) - new_size >= sizeof(header) + (2*ALIGNMENT)) {    // split if possible
-            split(nf, new_size);
-            nf->h += 1;    // mark as allocated
-        }
-        return old_ptr;
-    }
-    else {    // if new_size is larger than cur_size, we need to first check if we can coalesce to make space to use the existing location to realloc
-        freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
-        coalesce(nf, right);
-        if (getsize(&nf->h) >= new_size) {    // after coalescing, if there is now space for new_size, then we can in-place realloc
-            if (getsize(&nf->h) - new_size >= sizeof(header) + (2*ALIGNMENT)) {    // split if possible
-                split(nf, new_size);
-                nf->h += 1;    // mark as allocated
-            }
-            return old_ptr;
-        }
-    }
-    
-    */
     // if in-place does not work, regular realloc
     void* new_ptr = mymalloc(new_size);
     if (new_ptr == NULL) {
