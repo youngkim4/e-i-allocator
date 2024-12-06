@@ -304,7 +304,7 @@ void coalesce(freeblock *nf, freeblock *right) {
 void add_freeblock_to_list (freeblock *nf) {
 
     nf->next = first_freeblock;
-    nf->prev == NULL;
+    nf->prev = NULL;
 
     if (first_freeblock) {
         first_freeblock->prev = nf;
