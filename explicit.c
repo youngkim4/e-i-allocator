@@ -16,14 +16,8 @@
 #include <string.h>
 #include <stdio.h>
 
+// typedefs
 typedef size_t header;
-
-// header struct
-// typedef struct header {
-//  size_t data;
-// } header;
-
-// freeblock struct
 typedef struct freeblock {
     header h;
     struct freeblock *prev;
@@ -113,7 +107,7 @@ void coalesce(freeblock *nf, freeblock *right) {
     while ((void*)right != segment_end && isfree(&right->h)) {    // keep checking as long as we haven't hit the end of the heap AND the current block is actually free
         size_t addedsize = getsize(&right->h);
         remove_freeblock_from_list(right);    // make sure to remove the freeblock on the right since we are merging
-        (nf->h) += sizeof(header) + addedsize;    // add the size of the header and the data it represented
+        nf->h += sizeof(header) + addedsize;    // add the size of the header and the data it represented
         right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));    // iterate
     }
 }
