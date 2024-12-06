@@ -1,3 +1,15 @@
+/*
+ * Young Kim
+ * CS107
+ * assign6: Heap Allocator
+ * ------------------------
+ * This implicit.c file implements an implicit heap allocator.
+ * It utilizes a typedef to define a "header," which is really just
+ * a size_t for clarity and readability, as well as a few helper functions.
+ * The header is used to represent if the block of memory following it is
+ * either allocated or free, as well as how large the block of memory is.
+ * This implicit heap allocator also utilizes a first-fit (address-order) approach for malloc.
+ */
 #include "./allocator.h"
 #include "./debug_break.h"
 #include <string.h>
@@ -93,7 +105,7 @@ void myfree(void *ptr) {
     }
     
     header *newheader = (header*)((char*)ptr - sizeof(header));
-    *newheader -= 1;
+    *newheader -= 1;    // mark as free
 }
 
 /* Function: myrealloc
