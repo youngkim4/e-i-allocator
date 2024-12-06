@@ -5,7 +5,7 @@
 
 typedef struct header {
     size_t data;
-} header;
+} header; 
 
 static void *segment_start;
 static void *segment_end;
