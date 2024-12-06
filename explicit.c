@@ -238,7 +238,7 @@ bool validate_heap() {
     char* iter_ptr = segment_begin;
     while ((void*)iter_ptr < segment_end) {
         freeblock* cur_block = (freeblock*)iter_ptr;
-        size_t payload_size = getsize(&cur_block->h);
+        size_t payload_size = getsize(&cur_block->h) + sizeof(header);
 
         if (payload_size > ((char*)segment_end - iter_ptr)) {
             printf("payload bigger than heap");
