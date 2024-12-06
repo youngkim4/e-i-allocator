@@ -59,7 +59,7 @@ void coalesce(freeblock *nf, freeblock *right) {
         remove_freeblock_from_list(right);
         (nf->h).data += sizeof(header) + addedsize;
         right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));
-    };
+    }
 }
 
 void add_freeblock_to_list (freeblock *nf) {
