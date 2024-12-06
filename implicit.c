@@ -3,9 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-typedef struct header {
-    size_t data;
-} header; 
+typedef size_t header;
 
 static void *segment_start;
 static void *segment_end;
@@ -22,7 +20,7 @@ bool myinit(void *heap_start, size_t heap_size) {
     segment_size = heap_size - sizeof(header);
     
     first_header = heap_start;
-    first_header->data = segment_size;
+    *first_header = segment_size;
 
     segment_end = (char*)segment_start + heap_size;
     
@@ -42,7 +40,7 @@ The isfree helper function checks whether a header indicates whether a block
 of memory is free or not by returning the value of its least significant bit.
  */
 bool isfree(header *h) {
-    return !(h->data & 0x1);
+    return !(*h & 0x1);
 }
 
 /*
@@ -50,7 +48,7 @@ The getsize function returns the size of the block of memory the header heads
 by returning the value of the header without its 3 least significant bits.
  */
 size_t getsize(header *h) {
-    return h->data & ~(0x7);
+    return *h & ~(0x7);
 }
 
 /* 
@@ -75,12 +73,12 @@ void *mymalloc(size_t requested_size) {
             // check if we can create another header after we allocate memory
             if (getsize(current_header) - needed >= sizeof(header) + ALIGNMENT) {  // header needs the space for the size of itself and at least 8 bytes
                 size_t surplus = getsize(current_header);
-                current_header->data = needed;
+                *current_header = needed;
                 header *next = (header*)((char*)current_header + sizeof(header) + needed); // create new header
-                next->data = surplus - needed - sizeof(header);
+                *next = surplus - needed - sizeof(header);
             }
             
-            current_header->data += 1; // change header from indicating free to allocated
+            *current_header += 1; // change header from indicating free to allocated
 
             return (char*)current_header + sizeof(header); // return pointer to allocated memory
         }
@@ -100,7 +98,7 @@ void myfree(void *ptr) {
     }
     
     header *newheader = (header*)((char*)ptr - sizeof(header));
-    newheader->data -= 1;
+    *newheader -= 1;
 }
 
 /*
