@@ -214,27 +214,8 @@ void *myrealloc(void *old_ptr, size_t new_size) {
 }
 
 bool validate_heap() {
-    /*
-    char *iter_ptr = segment_begin;
-    while (iter_ptr < (char*)segment_end) {
-        size_t payload_size = getsize((header*)iter_ptr) + sizeof(header);
-        if (payload_size > ((char*)segment_end - iter_ptr)) {
-            printf("payload bigger than heap");
-            return false;
-        }
-        iter_ptr += payload_size;
-    }
-
-    if (iter_ptr != (char*)segment_end) {
-        printf("implicit test failure");
-        breakpoint();
-        return false;
-    }
-    */
-    
-    size_t nused = 0;
-    size_t free_seq = 0;
-
+    // 1) iterate through the heap's blocks
+    size_t freeblocks_iterate = 0;
     char* iter_ptr = segment_begin;
     while ((void*)iter_ptr < segment_end) {
         freeblock* cur_block = (freeblock*)iter_ptr;
@@ -245,50 +226,44 @@ bool validate_heap() {
             return false;
         }
         if (isfree(&cur_block->h)) {
-            free_seq++;
+            freeblocks_iterate++;
         }
-
-        nused += sizeof(header) + getsize(&cur_block->h);
 
         iter_ptr += payload_size;
     }
 
+    // check if we iterated through the entire heap
     if (iter_ptr != (char*)segment_end) {
         printf("The entire heap is not allocated for");
         return false;
     }
-
-    freeblock *cur_fb = first_freeblock;
-    size_t num_free = 0;
-    
-    while (cur_fb != NULL) {
-        if (isfree(&cur_fb->h)) {
-            num_free++;
-        }
-
-        if (cur_fb == cur_fb->next) {
-            printf("free block counted twice\n");
-            breakpoint();
-            return false;
-        }
-
-        cur_fb= cur_fb->next; 
-    }
-
-    if (num_free !=  freeblocks) {
-        printf("free blocks not linked up");
-        breakpoint();
+    // check if we correctly counted all freeblocks
+    if (freeblocks_iterate != freeblocks) {
+        printf("Freeblocks not linked up: heap iteration");
         return false;
     }
 
-    if (free_seq != freeblocks) {
-        printf("free blocks not linked up via heap iteration");
-        breakpoint();
+    // 2) iterate through linked list of freeblockcs
+    freeblock *cur_fb = first_freeblock;
+    size_t freeblocks_list = 0;
+    while (cur_fb != NULL) {
+        if (isfree(&cur_fb->h)) {
+            freeblocks_list++;
+        }
+        if (getsize(&cur_fb->h) & 0x1 != 1) {
+            printf("Freeblock not marked as free");
+            return false;
+        }
+        cur_fb= cur_fb->next; 
+    }
+
+    // check if we correctly counted all freeblocks
+    if (freeblocks_list != freeblocks) {
+        printf("Freeblocks not linked up: linked list");
         return false;
     }
 
     return true;
-    
 }
 
 /* Function: dump_heap
