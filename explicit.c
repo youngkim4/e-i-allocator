@@ -164,6 +164,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
             return old_ptr;
         }
         else {
+            memcpy(old_ptr, old_ptr, new_size);
             return old_ptr;
         }
     }
