@@ -65,7 +65,7 @@ bool myinit(void *heap_start, size_t heap_size) {
 
     // initialize first freeblock
     first_freeblock = heap_start;
-    (first_freeblock->h) = segment_size;
+    first_freeblock->h = segment_size;
     first_freeblock->prev = NULL;
     first_freeblock->next = NULL;
     freeblocks = 1;
@@ -154,7 +154,7 @@ void remove_freeblock_from_list (freeblock *nf) {
  */
 void split(freeblock *nf, size_t needed) {
     size_t surplus = getsize(&nf->h);
-    (nf->h) = needed;
+    nf->h = needed;
     freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
     (next->h) = surplus - needed - sizeof(header);
     add_freeblock_to_list(next);    // add new freeblock to list
@@ -183,7 +183,7 @@ void *mymalloc(size_t requested_size) {
             if (getsize(&cur_fb->h) - needed >= sizeof(header) + (2*ALIGNMENT)) {    // If there is enough space for another freeblock, split
                 split(cur_fb, needed);
             }
-            (cur_fb->h) += 1;    // mark as "allocated"
+            cur_fb->h += 1;    // mark as "allocated"
             remove_freeblock_from_list(cur_fb);
             return (char*)(cur_fb) + sizeof(header);
         }
@@ -204,7 +204,7 @@ void myfree(void *ptr) {
     }
 
     freeblock *nf = (freeblock*)((char*)ptr - sizeof(header));
-    (nf->h) -= 1;    // mark as free
+    nf->h -= 1;    // mark as free
     add_freeblock_to_list(nf);
     freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));    
     coalesce(nf, right);    // coalesce adjacent other freeblocks
@@ -242,7 +242,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     if (cur_size >= new_size) {    // if new_size is less than cur_size, we can use the existing location to realloc
         if (getsize(&nf->h) - new_size >= sizeof(header) + (2*ALIGNMENT)) {    // split if possible
             split(nf, new_size);
-            (nf->h) += 1;    // mark as allocated
+            nf->h += 1;    // mark as allocated
         }
         return old_ptr;
     }
@@ -252,7 +252,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         if (getsize(&nf->h) >= new_size) {    // after coalescing, if there is now space for new_size, then we can in-place realloc
             if (getsize(&nf->h) - new_size >= sizeof(header) + (2*ALIGNMENT)) {    // split if possible
                 split(nf, new_size);
-                (nf->h) += 1;    // mark as allocated
+                nf->h += 1;    // mark as allocated
             }
             return old_ptr;
         }
