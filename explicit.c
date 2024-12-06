@@ -16,10 +16,12 @@
 #include <string.h>
 #include <stdio.h>
 
+typedef size_t header;
+
 // header struct
-typedef struct header {
-    size_t data;
-} header;
+// typedef struct header {
+//  size_t data;
+// } header;
 
 // freeblock struct
 typedef struct freeblock {
@@ -69,7 +71,7 @@ bool myinit(void *heap_start, size_t heap_size) {
 
     // initialize first freeblock
     first_freeblock = heap_start;
-    (first_freeblock->h).data = segment_size;
+    (first_freeblock->h) = segment_size;
     first_freeblock->prev = NULL;
     first_freeblock->next = NULL;
     freeblocks = 1;
@@ -91,7 +93,7 @@ size_t roundup(size_t sz, size_t mult) {
  * Helper function to check whether a given header is free
  */
 bool isfree(header *h) {
-    return !(h->data & 0x1);
+    return !(*h & 0x1);
 }
 
 /* Function: getsize
@@ -99,7 +101,7 @@ bool isfree(header *h) {
  * Helper function to get the size that a given header represents.
  */
 size_t getsize(header *h) {
-    return h->data & ~(0x7);
+    return *h & ~(0x7);
 }
 
 /* Function: coalesce
@@ -111,7 +113,7 @@ void coalesce(freeblock *nf, freeblock *right) {
     while ((void*)right != segment_end && isfree(&right->h)) {    // keep checking as long as we haven't hit the end of the heap AND the current block is actually free
         size_t addedsize = getsize(&right->h);
         remove_freeblock_from_list(right);    // make sure to remove the freeblock on the right since we are merging
-        (nf->h).data += sizeof(header) + addedsize;    // add the size of the header and the data it represented
+        (nf->h) += sizeof(header) + addedsize;    // add the size of the header and the data it represented
         right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));    // iterate
     }
 }
@@ -158,9 +160,9 @@ void remove_freeblock_from_list (freeblock *nf) {
  */
 void split(freeblock *nf, size_t needed) {
     size_t surplus = getsize(&nf->h);
-    (nf->h).data = needed;
+    (nf->h) = needed;
     freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
-    (next->h).data = surplus - needed - sizeof(header);
+    (next->h) = surplus - needed - sizeof(header);
     add_freeblock_to_list(next);    // add new freeblock to list
 }
 
@@ -187,7 +189,7 @@ void *mymalloc(size_t requested_size) {
             if (getsize(&cur_fb->h) - needed >= sizeof(header) + (2*ALIGNMENT)) {    // If there is enough space for another freeblock, split
                 split(cur_fb, needed);
             }
-            (cur_fb->h).data += 1;    // mark as "allocated"
+            (cur_fb->h) += 1;    // mark as "allocated"
             remove_freeblock_from_list(cur_fb);
             return (char*)(cur_fb) + sizeof(header);
         }
@@ -208,7 +210,7 @@ void myfree(void *ptr) {
     }
 
     freeblock *nf = (freeblock*)((char*)ptr - sizeof(header));
-    (nf->h).data -= 1;    // mark as free
+    (nf->h) -= 1;    // mark as free
     add_freeblock_to_list(nf);
     freeblock *right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));    
     coalesce(nf, right);    // coalesce adjacent other freeblocks
@@ -246,7 +248,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     if (cur_size >= new_size) {    // if new_size is less than cur_size, we can use the existing location to realloc
         if (getsize(&nf->h) - new_size >= sizeof(header) + (2*ALIGNMENT)) {    // split if possible
             split(nf, new_size);
-            (nf->h).data += 1;    // mark as allocated
+            (nf->h) += 1;    // mark as allocated
         }
         return old_ptr;
     }
@@ -256,7 +258,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         if (getsize(&nf->h) >= new_size) {    // after coalescing, if there is now space for new_size, then we can in-place realloc
             if (getsize(&nf->h) - new_size >= sizeof(header) + (2*ALIGNMENT)) {    // split if possible
                 split(nf, new_size);
-                (nf->h).data += 1;    // mark as allocated
+                (nf->h) += 1;    // mark as allocated
             }
             return old_ptr;
         }
