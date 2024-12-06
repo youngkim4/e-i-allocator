@@ -91,13 +91,12 @@ void remove_freeblock_from_list (freeblock *nf) {
 }
 
 void split(freeblock *nf, size_t needed) {
-    if (getsize(&nf->h) - needed >= sizeof(header) + (2*ALIGNMENT)) {
-        size_t surplus = getsize(&nf->h);
-        (nf->h).data = needed;
-        freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
-        (next->h).data = surplus - needed - sizeof(header);
-        add_freeblock_to_list(next);
-    }
+    size_t surplus = getsize(&nf->h);
+    (nf->h).data = needed;
+    freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
+    (next->h).data = surplus - needed - sizeof(header);
+    add_freeblock_to_list(next);
+    
 }
 
 void *mymalloc(size_t requested_size) {
@@ -112,7 +111,9 @@ void *mymalloc(size_t requested_size) {
     
     while (cur_fb != NULL) {
         if (getsize(&cur_fb->h) >= needed) {
-            split(cur_fb, needed);
+            if (getsize(&cur_fb->h) - needed >= sizeof(header) + (2*ALIGNMENT)) {
+                split(cur_fb, needed);
+            }
             remove_freeblock_from_list(cur_fb);
             (cur_fb->h).data += 1;
             return (char*)(cur_fb) + sizeof(header);
