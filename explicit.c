@@ -199,6 +199,7 @@ bool validate_heap() {
         return false;
     }
     */
+    
     size_t nused = 0;
     size_t free_seq = 0;
 
