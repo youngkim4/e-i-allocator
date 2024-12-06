@@ -16,7 +16,8 @@ typedef struct freeblock {
 static void *segment_begin;
 static size_t segment_size;
 static void *segment_end;
-freeblock *first_freeblock;
+static freeblock *first_freeblock;
+static size_t freeblocks;
 
 void coalesce(freeblock *nf, freeblock *right);
 void add_freeblock_to_list(freeblock *nf);
@@ -37,6 +38,7 @@ bool myinit(void *heap_start, size_t heap_size) {
     (first_freeblock->h).data = segment_size;
     first_freeblock->prev = NULL;
     first_freeblock->next = NULL;
+    freeblocks = 1;
     
     return true;
 }
@@ -72,6 +74,8 @@ void add_freeblock_to_list (freeblock *nf) {
     else {
         first_freeblock = nf;
     }
+
+    freeblocks++;
     
 }
 
@@ -86,6 +90,7 @@ void remove_freeblock_from_list (freeblock *nf) {
     if (nf == first_freeblock) {
         first_freeblock = nf->next;
     }
+    freeblocks--;
 }
 
 void split(freeblock *nf, size_t needed) {
@@ -179,15 +184,69 @@ void *myrealloc(void *old_ptr, size_t new_size) {
 }
 
 bool validate_heap() {
-    /* TODO(you!): remove the line below and implement this to
-     * check your internal structures!
-     * Return true if all is ok, or false otherwise.
-     * This function is called periodically by the test
-     * harness to check the state of the heap allocator.
-     * You can also use the breakpoint() function to stop
-     * in the debugger - e.g. if (something_is_wrong) breakpoint();
-     */
+    char *iter_ptr = segment_begin;
+    while (iter_ptr < (char*)segment_end) {
+        size_t payload_size = getsize((header*)iter_ptr) + sizeof(header);
+        if (payload_size > ((char*)segment_end - iter_ptr)) {
+            printf("payload bigger than heap");
+            return false;
+        }
+        iter_ptr += payload_size;
+    }
+
+    if (iter_ptr != (char*)segment_end) {
+        printf("implicit test failure");
+        breakpoint();
+        return false;
+    }
+    size_t nused = 0;
+    size_t free_seq = 0;
+
+    freeblock *seq_iterator = segment_begin;
+    while ((void*)seq_iterator < segment_end) {
+        if (isfree(&seq_iterator->h)) {
+            free_seq++;
+        }
+
+        if (((seq_iterator->h).data & 0x7) > 2) {
+            printf("header is misaligned, or status bit is invalid");
+        }
+        nused += sizeof(header) + getsize(&seq_iterator->h);
+
+        seq_iterator = (freeblock*)((char*)segment_begin + nused);
+    }
+
+    freeblock *cur_fb = first_freeblock;
+    size_t num_free = 0;
+    
+    while (cur_fb != NULL) {
+        if (isfree(&cur_fb->h)) {
+            num_free++;
+        }
+
+        if (cur_fb == cur_fb->next) {
+            printf("free block counted twice\n");
+            breakpoint();
+            return false;
+        }
+
+        cur_fb= cur_fb->next; 
+    }
+
+    if (num_free !=  freeblocks) {
+        printf("free blocks not linked up");
+        breakpoint();
+        return false;
+    }
+
+    if (free_seq != freeblocks) {
+        printf("free blocks not linked up via heap iteration");
+        breakpoint();
+        return false;
+    }
+
     return true;
+    
 }
 
 /* Function: dump_heap
