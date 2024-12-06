@@ -302,26 +302,15 @@ void coalesce(freeblock *nf, freeblock *right) {
  * to the doubly linked list of freeblocks.
  */
 void add_freeblock_to_list (freeblock *nf) {
-
     nf->next = first_freeblock;
     nf->prev = NULL;
 
-    if (first_freeblock) {
+    if (first_freeblock) {    // if a first freeblock already exists, need to connect it with nf before we make nf the first freeblock
         first_freeblock->prev = nf;
     }
 
-    first_freeblock = nf;
+    first_freeblock = nf;    // LIFO approach
     freeblocks++;
-
-    /*
-    if (first_freeblock) {    // if a first_freeblock already exists, make sure to rewire the pointers accordingly
-        first_freeblock->prev = nf;    
-        nf->next = first_freeblock;    // link nf and first_freeblock directly
-        nf->prev = NULL;
-    }
-    first_freeblock = nf; // LIFO approach, so added freeblock goes to the front of the list
-    freeblocks++;
-    */
 }
 
 /* Function: remove_freeblock_from_list
@@ -332,17 +321,13 @@ void add_freeblock_to_list (freeblock *nf) {
 void remove_freeblock_from_list (freeblock *nf) {
     if (nf->prev) {    
         (nf->prev)->next = nf->next;
-    } else {
+    } else {    // else in this case means that nf is the first freeblock, so we need to set first_freeblock to the next freeblock in the list
         first_freeblock = nf->next;
     }
     if (nf->next) {
         (nf->next)->prev = nf->prev;
     }
-    /*
-    if (nf == first_freeblock) {    // we cannot remove the first freeblock
-        first_freeblock = nf->next;
-    }
-    */
+    
     freeblocks--;
 }
 
@@ -353,9 +338,8 @@ void remove_freeblock_from_list (freeblock *nf) {
  * Makes sure to add the new freeblock to the linked list.
  */
 void split(freeblock *nf, size_t needed) {
-    size_t surplus = getsize(&nf->h);
     nf->h = needed;
     freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
-    (next->h) = surplus - needed - sizeof(header);
+    (next->h) = getsize(nf->h) - needed - sizeof(header);
     add_freeblock_to_list(next);    // add new freeblock to list
 }
