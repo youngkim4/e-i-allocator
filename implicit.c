@@ -118,12 +118,7 @@ void myfree(void *ptr) {
  */
 void *myrealloc(void *old_ptr, size_t new_size) {
     if (old_ptr == NULL) {
-        // realloc(NULL, x) means to malloc
-        if (new_size != 0) {
-            return mymalloc(new_size);
-        }
-        // realloc(NULL, 0) returns NULL
-        return NULL;
+        return mymalloc(new_size);
     }
 
     // realloc(old_ptr, 0) means to free
