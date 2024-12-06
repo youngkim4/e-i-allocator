@@ -8,3 +8,5 @@
 test_bump samples/pattern-realloc.script
 test_implicit -q samples/pattern-realloc.script
 test_explicit -q samples/pattern-realloc.script
+
+test_explicit -q samples/*.script
