@@ -3,12 +3,27 @@
 #include <string.h>
 #include <stdio.h>
 
+// header typecast for clarity
 typedef size_t header;
 
+// global variables
 static void *segment_start;
 static void *segment_end;
 static size_t segment_size;
 static header *first_header;
+
+// main functions
+bool myinit(void *heap_start, size_t heap_size);
+void *mymalloc(size_t requested_size);
+void myfree(void *ptr);
+void *myrealloc(void *old_ptr, size_t new_size);
+bool validate_heap();
+void dump_heap();
+
+// helper functons
+size_t roundup(size_t sz, size_t mult);
+bool isfree(header *h);
+size_t getsize(header *h);
 
 bool myinit(void *heap_start, size_t heap_size) {
     if (heap_size < (2*ALIGNMENT)) {
@@ -27,29 +42,7 @@ bool myinit(void *heap_start, size_t heap_size) {
     return true;
 }
 
-/*
-The roundup helper function rounds a size sz up to the nearest multiple
-of size mult, which wfill be ALLOCATION (8)
- */
-size_t roundup(size_t sz, size_t mult) {
-    return (sz + mult - 1) & ~(mult - 1);
-}
 
-/*
-The isfree helper function checks whether a header indicates whether a block
-of memory is free or not by returning the value of its least significant bit.
- */
-bool isfree(header *h) {
-    return !(*h & 0x1);
-}
-
-/*
-The getsize function returns the size of the block of memory the header heads
-by returning the value of the header without its 3 least significant bits.
- */
-size_t getsize(header *h) {
-    return *h & ~(0x7);
-}
 
 /* 
 The implicit mymalloc function uses a first-fit approach to identify headers
@@ -160,4 +153,28 @@ void dump_heap() {
                (void*)current_header, getsize(current_header), isfree(current_header) ? "true" : "false");
         iter_ptr += sizeof(header) + getsize(current_header);
     }
+}
+
+/*
+The roundup helper function rounds a size sz up to the nearest multiple
+of size mult, which wfill be ALLOCATION (8)
+ */
+size_t roundup(size_t sz, size_t mult) {
+    return (sz + mult - 1) & ~(mult - 1);
+}
+
+/*
+The isfree helper function checks whether a header indicates whether a block
+of memory is free or not by returning the value of its least significant bit.
+ */
+bool isfree(header *h) {
+    return !(*h & 0x1);
+}
+
+/*
+The getsize function returns the size of the block of memory the header heads
+by returning the value of the header without its 3 least significant bits.
+ */
+size_t getsize(header *h) {
+    return *h & ~(0x7);
 }
