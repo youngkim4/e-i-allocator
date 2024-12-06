@@ -192,7 +192,6 @@ void *myrealloc(void *old_ptr, size_t new_size) {
  * freeblocks are working as intended, along with other checks.
  */
 bool validate_heap() {
-    /*
     // 1) iterate through the heap's blocks
     size_t freeblocks_iterate = 0;
     char* iter_ptr = segment_begin;
@@ -237,7 +236,7 @@ bool validate_heap() {
     if (freeblocks_list != freeblocks) {
         return false;
     }
-    */
+    
     return true;
 }
 
