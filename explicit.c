@@ -351,8 +351,9 @@ void remove_freeblock_from_list (freeblock *nf) {
  * Makes sure to add the new freeblock to the linked list.
  */
 void split(freeblock *nf, size_t needed) {
+    size_t surplus = getsize(&nf->h);
     nf->h = needed;
     freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
-    (next->h) = getsize(&nf->h) - needed - sizeof(header);
+    (next->h) = surplus - needed - sizeof(header);
     add_freeblock_to_list(next);    // add new freeblock to list
 }
