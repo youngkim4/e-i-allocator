@@ -302,6 +302,18 @@ void coalesce(freeblock *nf, freeblock *right) {
  * to the doubly linked list of freeblocks.
  */
 void add_freeblock_to_list (freeblock *nf) {
+
+    nf->next = first_freeblock;
+    nf->prev == NULL;
+
+    if (first_freeblock) {
+        first_freeblock->prev = nf;
+    }
+
+    first_freeblock = nf;
+    freeblocks++;
+
+    /*
     if (first_freeblock) {    // if a first_freeblock already exists, make sure to rewire the pointers accordingly
         first_freeblock->prev = nf;    
         nf->next = first_freeblock;    // link nf and first_freeblock directly
@@ -309,6 +321,7 @@ void add_freeblock_to_list (freeblock *nf) {
     }
     first_freeblock = nf; // LIFO approach, so added freeblock goes to the front of the list
     freeblocks++;
+    */
 }
 
 /* Function: remove_freeblock_from_list
@@ -319,14 +332,17 @@ void add_freeblock_to_list (freeblock *nf) {
 void remove_freeblock_from_list (freeblock *nf) {
     if (nf->prev) {    
         (nf->prev)->next = nf->next;
+    } else {
+        first_freeblock = nf->next;
     }
     if (nf->next) {
         (nf->next)->prev = nf->prev;
     }
-
+    /*
     if (nf == first_freeblock) {    // we cannot remove the first freeblock
         first_freeblock = nf->next;
     }
+    */
     freeblocks--;
 }
 
