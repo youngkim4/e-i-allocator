@@ -7,9 +7,9 @@
  * It utilizes multiple complex data structures to manage the heap,
  * such as structs to represent headers and freeblocks and a doubly linked list of freeblocks
  * along with a range of helper functions to implement mymalloc, myfree, and myrealloc.
- * The allocator uses a first-fit approach to malloc, as well as LIFO (last-in-first-out) approach
- * for the doubly linked list of freeblocks.
- * Furhtermore, the explicit heap allocator supports a malloc implementation that searches
+ * The allocator uses a first-fit approach to malloc, as well as LIFO (last-in-first-out) 
+ * approach for the doubly linked list of freeblocks.
+ * Furthermore, the explicit heap allocator supports a malloc implementation that searches
  * the linked list of freeblocks, coalescing adjacent free blocks and supports in-place realloc.
  */
 
@@ -129,7 +129,7 @@ void myfree(void *ptr) {
 
 /* Function: myrealloc
  * ----------------------
- * This function reallocates a size_t newsize amount of memory from the
+ * This function reallocates a size_t new_size amount of memory from the
  * location on the heap void *old_ptr. It first checks for edge cases in which
  * realloc turns into malloc or free, then tries to perform an in-place realloc
  * by checking whether or not the current location is suitable for new_size or
