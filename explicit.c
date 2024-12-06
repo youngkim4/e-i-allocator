@@ -7,7 +7,9 @@
  * It utilizes multiple complex data structures to manage the heap,
  * such as structs to represent headers and freeblocks and a doubly linked list of freeblocks
  * along with a range of helper functions to implement mymalloc, myfree, and myrealloc.
- * Specifically, the explicit heap allocator supports a malloc implementation that searches
+ * The allocator uses a first-fit approach to malloc, as well as LIFO (last-in-first-out) approach
+ * for the doubly linked list of freeblocks.
+ * Furhtermore, the explicit heap allocator supports a malloc implementation that searches
  * the linked list of freeblocks, coalescing adjacent free blocks and supports in-place realloc.
  */
 
