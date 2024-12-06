@@ -19,9 +19,13 @@ static void *segment_end;
 static freeblock *first_freeblock;
 static size_t freeblocks;
 
+size_t roundup(size_t sz, size_t mult);
+bool isfree(header *h);
+size_t getsize(header *h);
 void coalesce(freeblock *nf, freeblock *right);
 void add_freeblock_to_list(freeblock *nf);
 void remove_freeblock_from_list(freeblock *nf);
+void split(freeblock *nf, size_t needed);
 void dump_heap();
 
 
@@ -184,7 +188,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
 }
 
 bool validate_heap() {
-    /*
+    
     char *iter_ptr = segment_begin;
     while (iter_ptr < (char*)segment_end) {
         size_t payload_size = getsize((header*)iter_ptr) + sizeof(header);
@@ -200,7 +204,7 @@ bool validate_heap() {
         breakpoint();
         return false;
     }
-    */
+    
     
     size_t nused = 0;
     size_t free_seq = 0;
