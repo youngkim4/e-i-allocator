@@ -1,3 +1,16 @@
+/*
+ * Young Kim
+ * CS107
+ * assign6: Heap Allocator
+ * --------------------------
+ * This explicit.c file implements an explicit heap allocator.
+ * It utilizes multiple complex data structures to manage the heap,
+ * such as structs to represent headers and freeblocks and a doubly linked list of freeblocks
+ * along with a range of helper functions to implement mymalloc, myfree, and myrealloc.
+ * Specifically, the explicit heap allocator supports a malloc implementation that searches
+ * the linked list of freeblocks, coalescing adjacent free blocks and supports in-place realloc.
+ */
+
 #include "./allocator.h"
 #include "./debug_break.h"
 #include <string.h>
@@ -39,9 +52,11 @@ void *myrealloc(void *old_ptr, size_t new_size);
 bool validate_heap();
 void dump_heap();
 
-/* 
- * The myinit function initializes the heap and all the global variables,
- * fails if the heap is too small (cannot handle one header and 16 bytes of memory)
+/* Function: myinit
+ * -------------------
+ * This function initializes the heap and all of the global variables.
+ * It checks whether the heap is big enough for a header and 16 bytes of memory,
+ * and returns a boolean based on whether this condition is met.
  */
 bool myinit(void *heap_start, size_t heap_size) {
     if (heap_size < sizeof(header) + (2*ALIGNMENT)) {
@@ -52,6 +67,7 @@ bool myinit(void *heap_start, size_t heap_size) {
     segment_size = heap_size - sizeof(header);
     segment_end = (char*)heap_start + heap_size;
 
+    // initialize first freeblock
     first_freeblock = heap_start;
     (first_freeblock->h).data = segment_size;
     first_freeblock->prev = NULL;
@@ -61,25 +77,36 @@ bool myinit(void *heap_start, size_t heap_size) {
     return true;
 }
 
-/*
-Helper function to round up size_t sz to the 
-nearest multiple of size_t mult
+/* Function: roundup
+ * -------------------
+ * Helper function to round up size_t sz to 
+ * the nearest multiple of size_t mult
  */
 size_t roundup(size_t sz, size_t mult) {
     return (sz + mult - 1) & ~(mult - 1);
 }
 
-// Helper function to check whether a given header is free
+/* Function: isfree
+ * ----------------
+ * Helper function to check whether a given header is free
+ */
 bool isfree(header *h) {
     return !(h->data & 0x1);
 }
 
-// Helper function to get the size that a given header represents
+/* Function: getsize
+ * ------------------
+ * Helper function to get the size that a given header represents.
+ */
 size_t getsize(header *h) {
     return h->data & ~(0x7);
 }
 
-// Helper function to coalesce adjacent freeblocks to a given freeblock (going right)
+/* Function: coalesce
+ * --------------------
+ * Helper function to coalesce adjacent freeblocks to a given freeblock (going right).
+ * Runs a loop until all immediate freeblocks going right are all merged into one freeblock.
+ */
 void coalesce(freeblock *nf, freeblock *right) {
     while ((void*)right != segment_end && isfree(&right->h)) {    // keep checking as long as we haven't hit the end of the heap AND the current block is actually free
         size_t addedsize = getsize(&right->h);
@@ -89,44 +116,61 @@ void coalesce(freeblock *nf, freeblock *right) {
     }
 }
 
-// Helper function to add a given freeblock to the doubly linked list of freeblocks
+/* Function: add_freeblock_to_list
+ * ---------------------------------
+ * Helper function to add a given freeblock
+ * to the doubly linked list of freeblocks.
+ */
 void add_freeblock_to_list (freeblock *nf) {
-    if (first_freeblock) {
-        first_freeblock->prev = nf;
-        nf->next = first_freeblock;
+    if (first_freeblock) {    // if a first_freeblock already exists, make sure to rewire the pointers accordingly
+        first_freeblock->prev = nf;    
+        nf->next = first_freeblock;    // link nf and first_freeblock directly
         nf->prev = NULL;
     }
-    first_freeblock = nf; // LIFO approach, so added freeblock goes to end of the list
+    first_freeblock = nf; // LIFO approach, so added freeblock goes to the front of the list
     freeblocks++;
 }
 
-// Helper function to remove a given freeblock from the doubly linked list of freeblocks
+/* Function: remove_freeblock_from_list
+ * -----------------------------------------
+ * Helper function to remove a given freeblock  
+ * from the doubly linked list of freeblocks.
+ */
 void remove_freeblock_from_list (freeblock *nf) {
-    if (nf->prev) {
+    if (nf->prev) {    
         (nf->prev)->next = nf->next;
     }
     if (nf->next) {
         (nf->next)->prev = nf->prev;
     }
 
-    if (nf == first_freeblock) {
+    if (nf == first_freeblock) {    // we cannot remove the first freeblock
         first_freeblock = nf->next;
     }
     freeblocks--;
 }
 
-// Helper function to "split" an allocated block if there is extra space for another free block
+/* Function: split
+ * ----------------
+ * Helper function to "split" an allocated block
+ * to create a new freeblock after it on the heap.
+ * Makes sure to add the new freeblock to the linked list.
+ */
 void split(freeblock *nf, size_t needed) {
     size_t surplus = getsize(&nf->h);
     (nf->h).data = needed;
     freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
     (next->h).data = surplus - needed - sizeof(header);
-    add_freeblock_to_list(next);
+    add_freeblock_to_list(next);    // add new freeblock to list
 }
 
-/* 
- * The mymalloc function allocates the size_t requested size to the heap by iterating through the
- * linked list of freeblocks and allocating based on the first freeblock with enough space.
+/* Function: mymalloc
+ * -------------------
+ * This function allocates a size_t requested size to the heap.
+ * This is done through iterating the list of freeblocks until one
+ * block with adequate space is found, and returns the pointer to
+ * newly allocated space on the heap. If there is no such freeblock,
+ * the function returns NULL.
  */
 void *mymalloc(size_t requested_size) {
     // edge cases
@@ -151,8 +195,12 @@ void *mymalloc(size_t requested_size) {
     }
     return NULL;
 }
-/*
- * The myfree function frees a block for the specified point in memory ptr.
+
+/* Function: myfree
+ * ------------------
+ * This function frees a block for the specified point in memory void* ptr,
+ * adding the block to the linked list of freeblocks. It also makes sure to 
+ * coalesce any other freeblocks to the right of the newly freed block.
  */
 void myfree(void *ptr) {
     if (ptr == NULL) {
@@ -166,6 +214,16 @@ void myfree(void *ptr) {
     coalesce(nf, right);    // coalesce adjacent other freeblocks
 }
 
+/* Function: myrealloc
+ * ----------------------
+ * This function reallocates a size_t newsize amount of memory from the
+ * location on the heap void *old_ptr. It first checks for edge cases in which
+ * realloc turns into malloc or free, then tries to perform an in-place realloc
+ * by checking whether or not the current location is suitable for new_size or
+ * by checking if there are adjacent freeblocks to coalesce to make space for new_size.
+ * If in-place realloc is not possible, then a regular realloc using memcpy takes place.
+ * The function returns the location of the realloced memory.
+ */
 void *myrealloc(void *old_ptr, size_t new_size) {
     // edge cases:
     // if old_ptr == NULL, then realloc = malloc
@@ -213,6 +271,14 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     return new_ptr;
 }
 
+/* Function: validate_heap
+ * ------------------------
+ * This function runs through a series of checks, making sure that the heap contains no 
+ * bugs or other inadequacies. It is primarily used to debug errors, as the function 
+ * is able to manually catch and describe these errors. By iterating through the heap 
+ * both iteratively and via the doubly linked list, we are able to check if the 
+ * freeblocks are working as intended, along with other checks.
+ */
 bool validate_heap() {
     // 1) iterate through the heap's blocks
     size_t freeblocks_iterate = 0;
@@ -220,7 +286,7 @@ bool validate_heap() {
     while ((void*)iter_ptr < segment_end) {
         freeblock* cur_block = (freeblock*)iter_ptr;
         size_t payload_size = getsize(&cur_block->h) + sizeof(header);
-
+        // if the payload_size is bigger than the rest of the heap, return false
         if (payload_size > ((char*)segment_end - iter_ptr)) {
             printf("payload bigger than heap");
             return false;
@@ -229,7 +295,7 @@ bool validate_heap() {
             freeblocks_iterate++;
         }
 
-        iter_ptr += payload_size;
+        iter_ptr += payload_size;    // iterate
     }
 
     // check if we iterated through the entire heap
@@ -250,6 +316,7 @@ bool validate_heap() {
         if (isfree(&cur_fb->h)) {
             freeblocks_list++;
         }
+        // check if every freeblock on the list is marked as free
         if (!isfree(&cur_fb->h)) {
             printf("Freeblock not marked as free");
             return false;
