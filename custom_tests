@@ -10,3 +10,5 @@ test_implicit -q samples/pattern-realloc.script
 test_explicit -q samples/pattern-realloc.script
 
 test_explicit -q samples/pattern*.script
+test_explicit -q samples/trace*.script
+test-explicit -q samples/example*.script
