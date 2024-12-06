@@ -73,92 +73,6 @@ bool myinit(void *heap_start, size_t heap_size) {
     return true;
 }
 
-/* Function: roundup
- * -------------------
- * Helper function to round up size_t sz to 
- * the nearest multiple of size_t mult
- */
-size_t roundup(size_t sz, size_t mult) {
-    return (sz + mult - 1) & ~(mult - 1);
-}
-
-/* Function: isfree
- * ----------------
- * Helper function to check whether a given header is free
- */
-bool isfree(header *h) {
-    return !(*h & 0x1);
-}
-
-/* Function: getsize
- * ------------------
- * Helper function to get the size that a given header represents.
- */
-size_t getsize(header *h) {
-    return *h & ~(0x7);
-}
-
-/* Function: coalesce
- * --------------------
- * Helper function to coalesce adjacent freeblocks to a given freeblock (going right).
- * Runs a loop until all immediate freeblocks going right are all merged into one freeblock.
- */
-void coalesce(freeblock *nf, freeblock *right) {
-    while ((void*)right != segment_end && isfree(&right->h)) {    // keep checking as long as we haven't hit the end of the heap AND the current block is actually free
-        size_t addedsize = getsize(&right->h);
-        remove_freeblock_from_list(right);    // make sure to remove the freeblock on the right since we are merging
-        nf->h += sizeof(header) + addedsize;    // add the size of the header and the data it represented
-        right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));    // iterate
-    }
-}
-
-/* Function: add_freeblock_to_list
- * ---------------------------------
- * Helper function to add a given freeblock
- * to the doubly linked list of freeblocks.
- */
-void add_freeblock_to_list (freeblock *nf) {
-    if (first_freeblock) {    // if a first_freeblock already exists, make sure to rewire the pointers accordingly
-        first_freeblock->prev = nf;    
-        nf->next = first_freeblock;    // link nf and first_freeblock directly
-        nf->prev = NULL;
-    }
-    first_freeblock = nf; // LIFO approach, so added freeblock goes to the front of the list
-    freeblocks++;
-}
-
-/* Function: remove_freeblock_from_list
- * -----------------------------------------
- * Helper function to remove a given freeblock  
- * from the doubly linked list of freeblocks.
- */
-void remove_freeblock_from_list (freeblock *nf) {
-    if (nf->prev) {    
-        (nf->prev)->next = nf->next;
-    }
-    if (nf->next) {
-        (nf->next)->prev = nf->prev;
-    }
-
-    if (nf == first_freeblock) {    // we cannot remove the first freeblock
-        first_freeblock = nf->next;
-    }
-    freeblocks--;
-}
-
-/* Function: split
- * ----------------
- * Helper function to "split" an allocated block
- * to create a new freeblock after it on the heap.
- * Makes sure to add the new freeblock to the linked list.
- */
-void split(freeblock *nf, size_t needed) {
-    size_t surplus = getsize(&nf->h);
-    nf->h = needed;
-    freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
-    (next->h) = surplus - needed - sizeof(header);
-    add_freeblock_to_list(next);    // add new freeblock to list
-}
 
 /* Function: mymalloc
  * -------------------
@@ -344,4 +258,91 @@ void dump_heap() {
                (void*)cur, getsize(cur), isfree(cur) ? "false" : "true");
         iter_ptr += sizeof(header) + getsize(cur);    // iterate
     }
+}
+
+/* Function: roundup
+ * -------------------
+ * Helper function to round up size_t sz to 
+ * the nearest multiple of size_t mult
+ */
+size_t roundup(size_t sz, size_t mult) {
+    return (sz + mult - 1) & ~(mult - 1);
+}
+
+/* Function: isfree
+ * ----------------
+ * Helper function to check whether a given header is free
+ */
+bool isfree(header *h) {
+    return !(*h & 0x1);
+}
+
+/* Function: getsize
+ * ------------------
+ * Helper function to get the size that a given header represents.
+ */
+size_t getsize(header *h) {
+    return *h & ~(0x7);
+}
+
+/* Function: coalesce
+ * --------------------
+ * Helper function to coalesce adjacent freeblocks to a given freeblock (going right).
+ * Runs a loop until all immediate freeblocks going right are all merged into one freeblock.
+ */
+void coalesce(freeblock *nf, freeblock *right) {
+    while ((void*)right != segment_end && isfree(&right->h)) {    // keep checking as long as we haven't hit the end of the heap AND the current block is actually free
+        size_t addedsize = getsize(&right->h);
+        remove_freeblock_from_list(right);    // make sure to remove the freeblock on the right since we are merging
+        nf->h += sizeof(header) + addedsize;    // add the size of the header and the data it represented
+        right = (freeblock*)((char*)nf + sizeof(header) + getsize(&nf->h));    // iterate
+    }
+}
+
+/* Function: add_freeblock_to_list
+ * ---------------------------------
+ * Helper function to add a given freeblock
+ * to the doubly linked list of freeblocks.
+ */
+void add_freeblock_to_list (freeblock *nf) {
+    if (first_freeblock) {    // if a first_freeblock already exists, make sure to rewire the pointers accordingly
+        first_freeblock->prev = nf;    
+        nf->next = first_freeblock;    // link nf and first_freeblock directly
+        nf->prev = NULL;
+    }
+    first_freeblock = nf; // LIFO approach, so added freeblock goes to the front of the list
+    freeblocks++;
+}
+
+/* Function: remove_freeblock_from_list
+ * -----------------------------------------
+ * Helper function to remove a given freeblock  
+ * from the doubly linked list of freeblocks.
+ */
+void remove_freeblock_from_list (freeblock *nf) {
+    if (nf->prev) {    
+        (nf->prev)->next = nf->next;
+    }
+    if (nf->next) {
+        (nf->next)->prev = nf->prev;
+    }
+
+    if (nf == first_freeblock) {    // we cannot remove the first freeblock
+        first_freeblock = nf->next;
+    }
+    freeblocks--;
+}
+
+/* Function: split
+ * ----------------
+ * Helper function to "split" an allocated block
+ * to create a new freeblock after it on the heap.
+ * Makes sure to add the new freeblock to the linked list.
+ */
+void split(freeblock *nf, size_t needed) {
+    size_t surplus = getsize(&nf->h);
+    nf->h = needed;
+    freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
+    (next->h) = surplus - needed - sizeof(header);
+    add_freeblock_to_list(next);    // add new freeblock to list
 }
