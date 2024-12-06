@@ -92,7 +92,6 @@ void *mymalloc(size_t requested_size) {
     }
 
     size_t needed = requested_size <= 2*ALIGNMENT ? 2*ALIGNMENT : roundup(requested_size, ALIGNMENT);   // Only round up to the nearest multiple of 8 if requested_size > 16
-
     freeblock *cur_fb = first_freeblock;
     
     while (cur_fb != NULL) {
@@ -201,7 +200,6 @@ bool validate_heap() {
         size_t payload_size = getsize(&cur_block->h) + sizeof(header);
         // if the payload_size is bigger than the rest of the heap, return false
         if (payload_size > ((char*)segment_end - iter_ptr)) {
-            printf("payload bigger than heap");
             return false;
         }
         if (isfree(&cur_block->h)) {
@@ -213,12 +211,10 @@ bool validate_heap() {
 
     // check if we iterated through the entire heap
     if (iter_ptr != (char*)segment_end) {
-        printf("The entire heap is not allocated for");
         return false;
     }
     // check if we correctly counted all freeblocks
     if (freeblocks_iterate != freeblocks) {
-        printf("Freeblocks not linked up: heap iteration");
         return false;
     }
 
@@ -231,7 +227,6 @@ bool validate_heap() {
         }
         // check if every freeblock on the list is marked as free
         if (!isfree(&cur_fb->h)) {
-            printf("Freeblock not marked as free");
             return false;
         }
         cur_fb= cur_fb->next; 
@@ -239,7 +234,6 @@ bool validate_heap() {
 
     // check if we correctly counted all freeblocks
     if (freeblocks_list != freeblocks) {
-        printf("Freeblocks not linked up: linked list");
         return false;
     }
 
