@@ -250,7 +250,7 @@ bool validate_heap() {
         if (isfree(&cur_fb->h)) {
             freeblocks_list++;
         }
-        if (getsize(&cur_fb->h) & 0x1 != 1) {
+        if ((getsize(&cur_fb->h) & 0x1) != 1) {
             printf("Freeblock not marked as free");
             return false;
         }
