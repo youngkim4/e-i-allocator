@@ -96,7 +96,7 @@ void split(freeblock *nf, size_t needed) {
     freeblock *next = (freeblock*)((char*)nf + sizeof(header) + needed);
     (next->h).data = surplus - needed - sizeof(header);
     add_freeblock_to_list(next);
-    
+    (nf->h).data += 1;
 }
 
 void *mymalloc(size_t requested_size) {
@@ -115,7 +115,6 @@ void *mymalloc(size_t requested_size) {
                 split(cur_fb, needed);
             }
             remove_freeblock_from_list(cur_fb);
-            (cur_fb->h).data += 1;
             return (char*)(cur_fb) + sizeof(header);
         }
         cur_fb = cur_fb->next;  
@@ -158,7 +157,6 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     if (cur_size >= new_size) {
         if (getsize(&nf->h) - new_size >= sizeof(header) + (2*ALIGNMENT)) {
             split(nf, new_size);
-            (nf->h).data += 1;
         }
         return old_ptr;
     }
@@ -167,14 +165,12 @@ void *myrealloc(void *old_ptr, size_t new_size) {
         coalesce(nf, right);
         if (getsize(&nf->h) >= new_size) {
             split(nf, new_size);
-            (nf->h).data += 1;
             return old_ptr;
         }
     }
     // in-place does not work
     void* new_ptr = mymalloc(new_size);
     if (new_ptr == NULL) {
-        
         return NULL;
     }
     memcpy(new_ptr, old_ptr, new_size);
