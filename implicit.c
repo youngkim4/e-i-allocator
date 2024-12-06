@@ -117,6 +117,7 @@ void myfree(void *ptr) {
  * new_ptr, the new location in memory after the reallocation.
  */
 void *myrealloc(void *old_ptr, size_t new_size) {
+    // realloc(NULL, new_size) means to malloc
     if (old_ptr == NULL) {
         return mymalloc(new_size);
     }
@@ -142,15 +143,15 @@ void *myrealloc(void *old_ptr, size_t new_size) {
  */
 bool validate_heap() {
     char* check = segment_start;
-    while ((check < (char*)segment_end)) {
+    while ((check < (char*)segment_end)) {    // iterate throug heap
         size_t payload_size = getsize((header*)check) + sizeof(header);
-        if (payload_size > (char*)segment_end - check) {
+        if (payload_size > (char*)segment_end - check) {    // if the payload size is larger than the rest of the heap, error
             return false;
         }
-        check += payload_size;
+        check += payload_size;    // iterate
     }
     
-    return check == (char*)segment_end;
+    return check == (char*)segment_end;    // return whether or not we successfully iterated through the entire heap
 }
 
 /* Function: dump_heap
