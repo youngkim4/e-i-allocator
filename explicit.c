@@ -164,7 +164,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
             return old_ptr;
         }
         else {
-            (nf->h).data = new_size;
+            (nf->h).data = new_size + 1;
             return old_ptr;
         }
     }
