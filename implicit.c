@@ -74,7 +74,7 @@ void *mymalloc(size_t requested_size) {
     header *current_header = first_header;
     
     // iterate through all headers
-    while (true) {
+    while (current_header != segment_end) {
         if (isfree(current_header) && getsize(current_header) >= needed) { // if header indicates free block and there is enough size
             // check if we can create another header after we allocate memory
             if (getsize(current_header) - needed >= sizeof(header) + ALIGNMENT) {  // header needs the space for the size of itself and at least 8 bytes
