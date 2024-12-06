@@ -31,6 +31,14 @@ static void *segment_end;
 static freeblock *first_freeblock;
 static size_t freeblocks;
 
+// main functions
+bool myinit(void *heap_start, size_t heap_size);
+void *mymalloc(size_t requested_size);
+void myfree(void *ptr);
+void *myrealloc(void *old_ptr, size_t new_size);
+bool validate_heap();
+void dump_heap();
+
 // helper functions
 size_t roundup(size_t sz, size_t mult);
 bool isfree(header *h);
@@ -40,13 +48,6 @@ void add_freeblock_to_list(freeblock *nf);
 void remove_freeblock_from_list(freeblock *nf);
 void split(freeblock *nf, size_t needed);
 
-// main functions
-bool myinit(void *heap_start, size_t heap_size);
-void *mymalloc(size_t requested_size);
-void myfree(void *ptr);
-void *myrealloc(void *old_ptr, size_t new_size);
-bool validate_heap();
-void dump_heap();
 
 /* Function: myinit
  * -------------------
@@ -59,6 +60,7 @@ bool myinit(void *heap_start, size_t heap_size) {
         return false;
     }
 
+    // initialize segment/heap variables
     segment_begin = heap_start;
     segment_size = heap_size - sizeof(header);
     segment_end = (char*)heap_start + heap_size;
@@ -72,7 +74,6 @@ bool myinit(void *heap_start, size_t heap_size) {
     
     return true;
 }
-
 
 /* Function: mymalloc
  * -------------------
@@ -148,7 +149,6 @@ void *myrealloc(void *old_ptr, size_t new_size) {
     }
     
     new_size = new_size <= 2*ALIGNMENT ? 2*ALIGNMENT : roundup(new_size, ALIGNMENT);
-    
     freeblock *nf = (freeblock*)((char*)old_ptr - sizeof(header));    // block managed by old_ptr
     size_t cur_size = getsize(&nf->h);
     
@@ -171,6 +171,7 @@ void *myrealloc(void *old_ptr, size_t new_size) {
             return old_ptr;
         }
     }
+    
     // if in-place does not work, regular realloc
     void* new_ptr = mymalloc(new_size);
     if (new_ptr == NULL) {
