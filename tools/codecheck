@@ -1,1 +1,367 @@
-/afs/ir/class/archive/cs/cs107/cs107.1252/tools/codecheck
+#!/usr/bin/python2
+
+"""
+Cem Gokmen, Nick Troccoli
+
+Code check runs cpplint, clang-tidy and indent on code files and outputs code
+issues, if any.  Checks are designed to match course guidelines and style guide,
+but are not exhaustive.
+"""
+
+import base_student_tool, ui, gen
+import glob
+import json
+import subprocess
+import sys
+from collections import defaultdict
+import re
+import difflib
+
+CPPLINT_EXECUTABLE = "/afs/ir/class/cs107/tools/cpplint"
+CPPLINT_LINE_LENGTH = 120
+CPPLINT_DISABLED_CHECKS = [
+	"legal/copyright",
+	"build/include_order",
+	"build/include_alpha",
+	"runtime/int",
+	"runtime/printf",
+	"readability/casting",
+	"whitespace/end_of_line",
+	"runtime/arrays"
+]
+
+CLANG_TIDY_EXECUTABLE = "clang-tidy"
+CLANG_TIDY_ENABLED_CHECKS = [
+	"bugprone-assert-side-effect",
+	"bugprone-bool-pointer-implicit-conversion",
+	"bugprone-branch-clone",
+	"bugprone-macro-parentheses",
+	"bugprone-macro-repeated-side-effects",
+	"bugprone-misplaced-operator-in-strlen-in-alloc",
+	"bugprone-misplaced-pointer-arithmetic-in-alloc",
+	"bugprone-misplaced-widening-cast",
+	"bugprone-multiple-statement-macro",
+	"bugprone-not-null-terminated-result",
+	"bugprone-redundant-branch-condition",
+	"bugprone-sizeof-expression",
+	"bugprone-string-literal-with-embedded-nul",
+	"bugprone-suspicious-include",
+	"bugprone-suspicious-memset-usage",
+	"bugprone-suspicious-missing-comma",
+	"bugprone-suspicious-semicolon",
+	"bugprone-suspicious-string-compare",
+	"bugprone-swapped-arguments",
+	"bugprone-too-small-loop-variable",
+	"cppcoreguidelines-avoid-goto",
+	"cppcoreguidelines-init-variables",
+	"hicpp-multiway-paths-covered",
+	"misc-definitions-in-headers",
+	"misc-misplaced-const",
+	"misc-redundant-expression",
+	"misc-unused-parameters",
+	"modernize-use-bool-literals",
+	"performance-no-int-to-ptr",
+	"readability-avoid-const-params-in-decls",
+	"readability-braces-around-statements",
+	"readability-const-return-type",
+	#"readability-else-after-return",
+	"readability-function-size",
+	#"readability-identifier-naming" - TODO; concern about consistent naming inconsistent with starter
+	#"readability-implicit-bool-conversion" - TODO; is if (!x) ok?
+	"readability-inconsistent-declaration-parameter-name",
+	"readability-isolate-declaration",
+	"readability-magic-numbers",
+	"readability-misleading-indentation",
+	"readability-misplaced-array-index",
+	"readability-named-parameter",
+	"readability-redundant-control-flow",
+	"readability-redundant-declaration",
+	"readability-redundant-function-ptr-dereference",
+	"readability-simplify-boolean-expr",
+	"readability-uppercase-literal-suffix",
+]
+CLANG_TIDY_ENABLED_CHECK_OPTIONS = {
+	"bugprone-not-null-terminated-result.WantToUseSafeFunctions": False,
+	"bugprone-sizeof-expression.WarnOnSizeOfIntegerExpression": True,
+	"readability-function-size.LineThreshold": 50,
+	"readability-function-size.ParameterThreshold": 8,
+	"readability-function-size.StatementThreshold": -1
+}
+
+CLANG_TIDY_CONFIG = {
+	"Checks": "-*," + ",".join(CLANG_TIDY_ENABLED_CHECKS),
+	"CheckOptions": [{"key": k, "value": v} for k, v in CLANG_TIDY_ENABLED_CHECK_OPTIONS.iteritems()],
+	"WarningsAsErrors": "*"
+}
+
+INDENT_EXECUTABLE = "/afs/ir/class/cs107/tools/indent/bin/indent"
+INDENT_FLAGS = ["-st", "-nbad", "-nbap", "-nbbb", "-br", "-brf", "-brs", "-ce", "-cdw", "-nss", "-npcs", "-ncs", "-nprs", "-nbc", "-nbfde", "-nbfda", "-nut", "-i4", "-nip", "-lps", "-l120", "-ncdb", "-nfca", "-lp", "-npsl", "-nsc", "-nsob"]
+
+# By default, run on all .c files in current directory
+DEFAULT_FILES_TO_CHECK = glob.glob("*.c")
+
+
+def print_intro():
+	'''
+	Prints out a message introducing the program and what it does.
+	'''
+	print("Running code check.  This check is NOT exhaustive;")
+	print("it is only meant to identify common code and style issues.")
+	print("It is currently in beta - if you have concerns about results please ask on Ed.")
+	print("Check the course style guide and assignment spec for more coding guidelines.")
+	print("----\n")
+
+def run_command(command):
+	'''
+	Runs the given command array, and returns (stdout, stderr, success)
+	tuple, where success is True if the returncode is 0, and False otherwise.
+	'''
+	subprocess_call = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	cmd_stdout, cmd_stderr = subprocess_call.communicate()
+	return (cmd_stdout, cmd_stderr, subprocess_call.returncode == 0)
+
+def run_cpplint(files_to_check):
+	'''
+	Runs cpplint with the configuration constants on the given files.
+	'''
+	cpplint_command = [
+		CPPLINT_EXECUTABLE,
+		"--filter=+," + ",".join(["-%s" % check for check in CPPLINT_DISABLED_CHECKS]),
+		"--linelength=%d" % CPPLINT_LINE_LENGTH
+	] + files_to_check
+
+	return run_command(cpplint_command)
+
+def run_clang_tidy(files_to_check):
+	'''
+	Runs clang-tidy with the configuration constants on the given files.
+	'''
+	clang_tidy_command = [
+		CLANG_TIDY_EXECUTABLE,
+		"--config=" + json.dumps(CLANG_TIDY_CONFIG),
+	] + files_to_check + ["--"]
+
+	return run_command(clang_tidy_command)
+
+def initial_indentation_differs(line1, line2):
+	'''
+	Returns true if the initial whitespace on these lines does not match, and false if they do match.
+	'''
+	return re.search(r"^\s*", line1).group() != re.search(r"^\s*", line2).group()
+
+class Line:
+	"""
+	A class bundling together a line and line number, for use with the indent analysis
+	"""
+	linenum = -1
+	line = ""
+
+	def __init__(self, linenum, line):
+		self.linenum = linenum
+		self.line = line
+
+def trim_and_number_lines(lines):
+	'''
+	Converts the provided list of lines into a list of Line objects where the
+	line number is i + 1 (i = its index in the original lines array) and the 
+	line is the line with trailing whitespace stripped out.  
+	Also omits any blank lines.
+	'''
+	new_lines = []
+	for i, line in enumerate(lines):
+		line = line.rstrip()
+		if line:
+			new_lines.append(Line(i + 1, line))
+
+	return new_lines
+
+def adjust_for_struct_literals(original, indented):
+	'''
+	Goes through and searches for struct literals in the original code
+	(specifically searches for "= (cast) {"),
+	and combines the two corresponding lines for it in `indented` (because
+	GNU indent likes to split struct literals onto two lines :( ).  Updates
+	indented to combine the two corresponding lines and update the line
+	numbers of lines that follow it to decrement by 1 to reflect the line
+	removal.
+	'''
+	for i, original_line in enumerate(original):
+		if re.search(r"=\s*\(\s*[a-zA-z0-9]+\s*\)\s*\{", original_line.line):
+			# combine the two-line re-indented version back together
+			indented[i].line += indented[i + 1].line
+			del indented[i + 1]
+			for j in range(i + 1, len(indented)):
+				indented[j].linenum -= 1
+
+def identify_diff(filename, original, indented):
+	'''
+	Prints out the first difference in the original vs. indented lines
+	that is causing the line counts to diverge.  Expects two arrays of Line
+	objects.
+	'''
+
+	# diff the two sets of lines (omit first 2 from output, which are *** and ---)
+	difflines = [l for l in difflib.context_diff([l.line for l in original], 
+		[l.line for l in indented], n=0, lineterm="")][2:]
+
+	''' 
+	difflines is a list with the following sequence of lines repeated 1+ times:
+	***************
+	*** line number(s) ***
+	1 or more lines beginning with !
+	--- line number(s) ***
+	1 or more lines beginning with !
+
+	e.g.
+	***************
+	*** 21 ****
+	!         int content_length = strlen(buffer);  // Length of current content
+	--- 21 ----
+	!         int content_length = strlen(buffer);    // Length of current content
+	***************
+	*** 24,25 ****
+	!         if (fgets(new_buffer, buffer_size,
+	!                   file_pointer) == NULL) {
+	--- 24 ----
+	!         if (fgets(new_buffer, buffer_size, file_pointer) == NULL) {
+	'''
+
+	diff_star = []
+	diff_dash = []
+	on_diff_star = True
+
+	for line in difflines:
+		# start of new diff chunk
+		if line == "***************":
+			'''
+			check if the diff chunk we just finished had mismatching # lines differing.
+			'''
+			if len(diff_star) != len(diff_dash):
+				break
+			else:
+				# clear lines for the next diff chunk
+				diff_star = []
+				diff_dash = []
+		# Marks start of lines differing in original
+		elif line.startswith("*** "):
+			on_diff_star = True
+		# Marks starts of lines differing in indented
+		elif line.startswith("---"):
+			on_diff_star = False
+		# Marks a differing line
+		elif line.startswith("!"):
+			if on_diff_star:
+				diff_star.append(line[1:])
+			else:
+				diff_dash.append(line[1:])
+
+	'''
+	check if the diff chunk we just finished had mismatching # lines differing.
+	If it does, that means the indented version added or removed lines vs.
+	the original version, which we want to report to the user.
+	'''
+	if len(diff_star) != len(diff_dash):
+		print("\n%s: formatting issue found:" % filename)
+		print("\n".join(diff_star))
+		print("Expected:")
+		print("\n".join(diff_dash))
+		print("\n")
+
+def run_indent(files_to_check):
+	'''
+	Runs GNU indent with the configuration constants on the given files.  Then scans
+	the output for lines that are corrected by GNU indent for an issue with the spacing
+	at the start of the line, and returns a map from filename to the line numbers that
+	were changed by GNU indent, as well as a map from filename to bool for whether
+	indent ran successfully on that file (True) or if there was an error (False).
+	'''
+	# Map from filename -> list of line numbers
+	lines_that_differ = defaultdict(list)
+
+	# Map from filename -> whether indent was able to run successfully on that file
+	successes = {file_to_check:True for file_to_check in files_to_check}
+
+	for file_to_check in files_to_check:
+		# read the original file
+		try:
+			all_lines = open(file_to_check).readlines()
+		except IOError:
+			print(ui.red("Error: unable to find file '%s'" % file_to_check))
+			continue
+
+		original = trim_and_number_lines(all_lines)
+
+		# get the indented version by running indent
+		indent_command = [INDENT_EXECUTABLE] + INDENT_FLAGS + [file_to_check]
+		if gen.NT_RUNNING: print(indent_command)
+		stdout, _, _ = run_command(indent_command)
+		indented = trim_and_number_lines([line for line in stdout.split("\n")])
+
+		# Hack: GNU indent likes putting struct literals on two lines :(
+		adjust_for_struct_literals(original, indented)
+
+		# The number of nonempty lines outputted by GNU indent should match the file
+		if len(original) != len(indented):
+			identify_diff(file_to_check, original, indented)
+			successes[file_to_check] = False
+			continue
+
+		# compare the two and record any lines whose starting indentation differs
+		for i in range(len(original)):
+			if initial_indentation_differs(original[i].line, indented[i].line):
+				lines_that_differ[file_to_check].append(original[i].linenum)
+
+	return lines_that_differ, successes
+
+def main():
+	print_intro()
+
+	# Figure out which files to run on
+	files_to_check = DEFAULT_FILES_TO_CHECK
+	if len(sys.argv[1:]) == 0:
+		print("No files specified, running on all .c files in current directory.")
+	else:
+		files_to_check = sys.argv[1:]
+		print("Running on file(s) %s" % files_to_check)
+
+	# Run cpplint and clang-tidy and indent
+	_, cpplint_stderr, cpplint_success = run_cpplint(files_to_check)
+	clang_tidy_stdout, _, clang_tidy_success = run_clang_tidy(files_to_check)
+	misindented_lines, statuses = run_indent(files_to_check)
+
+	# check if any files had errors for the indent tool
+	indent_error = False
+	for filename in statuses:
+		if not statuses[filename]:
+			indent_error = True
+			break
+
+	num_issues = 0
+
+	# Output results
+	if not (cpplint_success and clang_tidy_success and not indent_error and len(misindented_lines) == 0):
+		print("One or more style issues found:\n")
+
+		if not cpplint_success:
+			print("Issues found by cpplint:\n" + cpplint_stderr)
+			num_issues += sum([len(re.findall(r"%s:" % f, cpplint_stderr)) for f in files_to_check])
+
+		if not clang_tidy_success:
+			print("Issues found by clang-tidy:\n" + clang_tidy_stdout)
+			num_issues += sum([len(re.findall(r"%s:" % f, clang_tidy_stdout)) for f in files_to_check])
+
+		if indent_error or len(misindented_lines) != 0:
+			print("Issues found by indent:")
+			for filename in statuses:
+				if not statuses[filename]:
+					print(ui.red("ERROR: codecheck could not complete.  indent could not check indentation for %s due to a formatting issue.  Fix the formatting issue listed above and try running again." % filename))
+				elif filename in misindented_lines:
+					num_issues += len(misindented_lines[filename])
+					for elem in misindented_lines[filename]:
+						print("%s:%d incorrect indentation" % (filename, elem))
+
+	print("\n%d style issues found." % num_issues)
+
+
+if __name__ == "__main__":
+	main()
