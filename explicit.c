@@ -138,6 +138,7 @@ void myfree(void *ptr) {
  * The function returns the location of the realloced memory.
  */
 void *myrealloc(void *old_ptr, size_t new_size) {
+    breakpoint();
     // edge cases:
     // if old_ptr == NULL, then realloc = malloc
     if (old_ptr == NULL) {
