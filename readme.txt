@@ -26,13 +26,14 @@ for this was to have better memory utilization and reduce the amount of adjacent
 
 2.
 
-Explicit: 
-
-
+My implicit allocator makes some assumptions about the client's decisions. For example, it assumes that the client does not try to free the same block
+of memory two times. If this were to happen, then the header would become corrupted, as myfree subtracts 1 from the header to mark it as free. However,
+if we were to free an already free block/header, then it would subtract 1 again, which would lead to the header's data that it represents be incorrect AND
+the header would be marked as "allocated." Another assumption the allocator makes is that a free block's "data" will not be realloced. If this were to happen,
+the allocator would free the free block in order to prepare memcpy and the reallocation, and we just went over what happens if a free block is freed.
 
 
 Tell us about your quarter in CS107!
 -----------------------------------
-
-
-
+CS107 has been a great class for me! I've never really worked with things like the terminal and ASM/C, the bare bones of a computer, so learning
+about how it all works has given me a good introduction into how computers work at a base level. I also want to thank Jerry and all the TAs for being great this quarter!
