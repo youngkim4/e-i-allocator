@@ -87,7 +87,7 @@ bool myinit(void *heap_start, size_t heap_size) {
  */
 void *mymalloc(size_t requested_size) {
     // edge cases
-    if (requested_size > MAX_REQUEST_SIZE || requested_size == 0) {
+    if (requested_size > MAX_REQUEST_SIZE || requested_size <= 0) {
         return NULL;
     }
 
@@ -314,9 +314,11 @@ void add_freeblock_to_list (freeblock *nf) {
 void remove_freeblock_from_list (freeblock *nf) {
     if (nf->prev) {    
         (nf->prev)->next = nf->next;
-    } else {    // else in this case means that nf is the first freeblock, so we need to set first_freeblock to the next freeblock in the list
+    }
+    else {    // else in this case means that nf is the first freeblock, so we need to set first_freeblock to the next freeblock in the list
         first_freeblock = nf->next;
     }
+    
     if (nf->next) {
         (nf->next)->prev = nf->prev;
     }
